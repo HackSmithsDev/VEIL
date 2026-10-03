@@ -1,0 +1,123 @@
+# ─────────────────────────────────────────────
+
+# VEIL Guard Engine
+
+# ─────────────────────────────────────────────
+
+# Python cache / compiled files
+
+**pycache**/
+*.py[cod]
+*$py.class
+*.so
+
+# Python virtual environments
+
+.venv/
+venv/
+env/
+ENV/
+
+# Environment / secrets
+
+.env
+.env.*
+!.env.example
+
+# Test / coverage
+
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+
+# Build / distribution artifacts
+
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+wheels/
+
+# VEIL Engine build/package output
+
+builds/*/dist/
+builds/*/build/
+builds/*/*.egg-info/
+
+# Temporary / runtime data
+
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Logs
+
+logs/
+*.log
+
+# Local runtime state
+
+data/
+state/
+cache/
+
+# Security-sensitive local material
+
+keys/
+secrets/
+certs/
+*.key
+*.pem
+*.crt
+
+# Docker
+
+.docker/
+docker-data/
+
+# IDE / editors
+
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# OS files
+
+Thumbs.db
+Desktop.ini
+
+# Local tooling
+
+.python-version
+.pyenv/
+
+# Packaging / installer leftovers
+
+*.msi
+*.exe
+*.zip
+*.tar
+*.tar.gz
+*.whl
+
+# Generated reports
+
+reports/
+coverage.xml
+junit.xml
+test-results/
+
+# Project-specific local files
+
+.veil/
+.veil-guard/
