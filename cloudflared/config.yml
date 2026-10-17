@@ -1,0 +1,6 @@
+tunnel: 1b6af41f-fabb-43db-a2fa-74e6f10ff92a
+
+ingress:
+  - hostname: veil-api.hacksmiths.dev
+    service: http://cloud:8089
+  - service: http_status:404

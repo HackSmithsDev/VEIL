@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Installer>
+    <Name>VEIL Guard</Name>
+    <Version>0.1.0</Version>
+    <Title>VEIL Guard Setup</Title>
+    <Publisher>VEIL Guard</Publisher>
+    <ProductUrl>https://hacksmiths.dev</ProductUrl>
+    <InstallerApplicationIcon>veilguard</InstallerApplicationIcon>
+    <Logo>veilguard.png</Logo>
+    <TargetDir>@ApplicationsDirUser@</TargetDir>
+    <WizardStyle>Modern</WizardStyle>
+    <WizardShowPageList>true</WizardShowPageList>
+    <StyleSheet>veilguard.qss</StyleSheet>
+    <RunProgram>/usr/bin/open</RunProgram>
+    <RunProgramArguments>
+        <Argument>@TargetDir@/VEIL Guard.app</Argument>
+    </RunProgramArguments>
+    <RunProgramDescription>Launch VEIL Guard</RunProgramDescription>
+    <RemoteRepositories>
+    </RemoteRepositories>
+</Installer>

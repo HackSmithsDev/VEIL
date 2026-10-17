@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package>
+    <DisplayName>VEIL Guard desktop app</DisplayName>
+    <Description>Install the VEIL Guard desktop application.</Description>
+    <Version>0.1.0</Version>
+    <ReleaseDate>2026-10-17</ReleaseDate>
+    <Name>com.hacksmiths.veilguard.desktop</Name>
+    <Default>true</Default>
+    <Essential>true</Essential>
+</Package>

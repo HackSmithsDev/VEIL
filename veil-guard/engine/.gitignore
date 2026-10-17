@@ -2,3 +2,14 @@
 *.py[cod]
 *$py.class
 *.so
+
+# Test and coverage output
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Python package and build output
+/build/
+/dist/
+/*.egg-info/
+/libs/*.egg-info/

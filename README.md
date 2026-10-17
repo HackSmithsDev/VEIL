@@ -1,20 +1,20 @@
 # VEIL
 
-VEIL is a desktop product with a cloud account service. The desktop interface is
-built with React and packaged with Tauri; the cloud service is a separate
-FastAPI application.
+VEIL Guard is a desktop utility with a separate local Engine, native installer,
+and optional Cloud account features. The utility is built with React and
+packaged with Tauri; VEIL Cloud is a separate FastAPI application.
 
 ## Components
 
 ```text
 ┌────────────────────────────────┐          ┌───────────────────────────────┐
-│ VEIL Guard desktop application │  HTTPS   │ VEIL Cloud                    │
+│ VEIL Guard desktop utility     │  HTTPS   │ VEIL Cloud (optional features)│
 │                                ├─────────►│ FastAPI                       │
 │ React UI + Tauri host          │          │ Accounts, profiles, programs, │
 │                                │          │ feedback                      │
 └───────────────┬────────────────┘          └───────────────────────────────┘
                 │
-                │ local interface (later phase)
+                │ authenticated local IPC (future)
                 ▼
 ┌────────────────────────────────┐
 │ VEIL Guard Engine               │
@@ -27,13 +27,14 @@ metadata used for future AI-upgrade features, and user feedback. It is not the
 confidential processing engine. Source code, prompts, model responses, and
 session secrets are out of scope for this initial cloud feature set.
 
-The Engine is a separate local-runtime project. Its security, sandbox, DLP, and
-local-AI workflows are not prerequisites for building the initial account,
-program-metadata, and feedback experience.
+The Engine handles future local prompt assessment and processing. The separate
+platform installer sets up the utility and Engine; it does not require Cloud
+sign-in. The installed utility should manage protection locally, while sign-in
+is optional for Cloud profile, program metadata, and feedback features.
 
 ## Initial delivery scope
 
-The first vertical slice is the desktop UI plus cloud API:
+The Cloud-backed features are:
 
 - Sign up, sign in, sign out, and view/update the signed-in user's profile.
 - Create, list, view, update, and delete a user's program metadata.
@@ -47,13 +48,13 @@ slice.
 
 ## UI outline
 
-1. **Authentication** — sign-in and account-creation screens.
-2. **Dashboard** — a concise welcome, program and feedback counts, and clear
-   links to the main actions.
+1. **Protection** — local Engine/connector readiness and protection status;
+   this must be usable without a Cloud account.
+2. **Setup** — installer status, optional local processing, and connectors.
 3. **Programs** — searchable/list view and add/edit details form. Treat these
-   as metadata records, not protected source-code workspaces.
-4. **Profile** — view and edit basic account details.
-5. **Feedback** — category and message; warn users
+   as optional Cloud metadata records, not protected source-code workspaces.
+4. **Account** — optional sign-in and profile management for Cloud features.
+5. **Feedback** — optional Cloud feature; warn users
    not to include passwords, source code, prompts, or other secrets.
 6. **Settings** — account details and application version; avoid implying
    local Engine security controls are active until implemented.
@@ -66,6 +67,8 @@ slice.
   user-scoped access to profile, program, and feedback records.
 - **Engine** will own future local confidential processing. It must not be
   represented as implemented merely because its directory exists.
+- **Installer** owns platform-specific installation, background service setup,
+  consent, upgrades, repair, and uninstall. It must not depend on VEIL Cloud.
 - Tauri packages the desktop interface as a platform application. The cloud
   backend is deployed separately and is not bundled into that desktop app.
 
@@ -80,21 +83,26 @@ veil-cloud/                 FastAPI cloud service and Alembic migrations
 veil-guard/
   interface/                React UI and Tauri desktop host
   engine/                   Separate local security/runtime project
+  installer/                Separate Windows, macOS, and Linux installer work
 docker-compose.yml          Local PostgreSQL + cloud API development stack
 ```
 
-Each component has its own README with its responsibilities and development
-entry points. The first account/program/feedback slice is now implemented; the
-Engine remains unimplemented and is intentionally out of scope.
+Each component has its own README with responsibilities and status. The
+Cloud-backed account/program/feedback slice is implemented. The macOS Qt
+Installer Framework project stages the desktop app for packaging, but the
+framework build tool is not installed and no installer binary has been
+generated. The Engine runtime and Windows/Linux installers are not ready, so
+VEIL Guard does not provide active prompt protection yet.
 
 ## Run locally
 
 Configure a random `VEIL_JWT_SECRET` in `veil-cloud/.env` and set
 `CLOUDFLARED_TUNNEL_TOKEN` in the root `.env` to the tunnel token from the
 Cloudflare dashboard. Create either file from its `.env.example` if needed.
-Keep both real values private. The Cloudflared container connects to the
-`cloud` service; configure the dashboard's tunnel origin as
-`http://cloud:8089`.
+Keep both real values private. The Cloudflared container uses the checked-in,
+non-secret `cloudflared/config.yml` ingress mapping to route
+`veil-api.hacksmiths.dev` to the `cloud` service on port 8089. Never put the
+tunnel token in that config file or commit it.
 
 ```bash
 cp -n .env.example .env

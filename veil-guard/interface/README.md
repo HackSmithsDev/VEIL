@@ -1,17 +1,20 @@
 # VEIL Guard Interface
 
-The Interface is the React frontend packaged as a desktop application by Tauri.
-It is the user's control surface; it does not enforce security policy or own
-cloud persistence.
+The Interface is the React frontend packaged as the VEIL Guard desktop utility
+by Tauri. It is the user's control surface; it does not install the Engine,
+enforce security policy, or own cloud persistence.
 
 ## Included in the first UI slice
 
 The current UI implements the account, profile, program-metadata, and feedback
-flows against VEIL Cloud:
+flows against VEIL Cloud, with a protection-focused status and setup experience:
 
-- **Sign in / Create account** — clear validation and server-error states.
-- **Dashboard** — welcome, program count, and shortcuts to programs, profile,
-  and feedback.
+- **Protection** — local Engine and connector readiness with honest active,
+  inactive, and unavailable states.
+- **Setup** — explains the separate platform installer and optional local model
+  setup. Installation itself is not implemented in this build.
+- **Sign in / Create account** — optional; only required for VEIL Cloud
+  profile, program metadata, and feedback features.
 - **Programs** — list and search the user's program metadata; create, edit, and
   remove a record. AI-upgrade execution is not part of this initial slice.
 - **Profile** — view and edit basic account details.
@@ -20,8 +23,10 @@ flows against VEIL Cloud:
 - **Account controls** — sign out from the account menu and view the app version.
 
 Design every screen for loading, empty, validation, success, and recoverable
-failure states. Keep the initial UI intentionally small; do not show Engine,
-policy, DLP, sandbox, or local-AI controls until those capabilities exist.
+failure states. The setup page is informational only: this build does not
+install the Engine, install Ollama, configure connectors, inspect prompts, or
+block credential leaks. Do not present protection as active until the Engine
+reports a verified status over authenticated local IPC.
 
 ## Component boundaries
 
@@ -54,7 +59,8 @@ added later.
 
 The Engine integration is a later phase and should use a deliberate local IPC
 contract. Do not have the UI launch arbitrary shell commands or assume the
-Engine is available.
+Engine is available. Local protection must remain usable without signing in;
+Cloud-backed features should request authentication only when opened.
 
 ## Development
 
