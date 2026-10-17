@@ -29,7 +29,7 @@ export default function ProfilePage({ user, request, onUserUpdated }) {
     <>
       <div className="page-heading"><div><div className="eyebrow">ACCOUNT SETTINGS</div><h1>Your profile</h1><p>Manage the basic details associated with your VEIL Guard account.</p></div></div>
       <section className="surface-card profile-card">
-        <div className="profile-card-heading"><span className="profile-avatar">{user.full_name.split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase()}</span><div><h2>Personal details</h2><p>Only you can view and update this information.</p></div></div>
+        <div className="profile-card-heading"><span className="profile-avatar">{user.full_name.split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase()}</span><div><h2>Personal details</h2><p>Update your display name. Email changes are not available yet.</p></div></div>
         <form className="profile-form" onSubmit={saveProfile}>
           <label className="field"><span>Full name</span><input required maxLength={120} value={fullName} onChange={(event) => setFullName(event.target.value)} /></label>
           <label className="field"><span>Email address</span><input value={user.email} readOnly disabled /><small>Email changes are not available yet.</small></label>

@@ -1,9 +1,18 @@
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Response, status
+import hashlib
+import secrets
+from hmac import compare_digest
+
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, Response, status
+from redis.exceptions import RedisError
+from sqlalchemy import select
 
 from app.api.v1.dependencies import CurrentUser, DatabaseSession
 from app.api.v1.schemas import (
     FeedbackCreate,
     FeedbackRead,
+    MessageRead,
+    PasswordResetConfirm,
+    PasswordResetRequest,
     ProgramCreate,
     ProgramRead,
     ProgramUpdate,
@@ -13,6 +22,7 @@ from app.api.v1.schemas import (
     UserProfileUpdate,
     UserRead,
 )
+from app.core.config import settings
 from app.core.exceptions import AccountAlreadyExistsError, ResourceNotFoundError
 from app.core.security import create_access_token
 from app.db.models.feedback import Feedback
@@ -21,10 +31,15 @@ from app.db.models.user import User
 from app.services.accounts import (
     authenticate_account,
     register_account,
+    reset_account_password,
     update_account_profile,
 )
 from app.services.feedback import list_user_feedback, submit_user_feedback
-from app.services.email.sender import send_feedback_emails, send_welcome_email
+from app.services.email.sender import (
+    send_feedback_emails,
+    send_password_reset_email,
+    send_welcome_email,
+)
 from app.services.programs import (
     create_user_program,
     delete_user_program,
@@ -32,8 +47,16 @@ from app.services.programs import (
     list_user_programs,
     update_user_program,
 )
+from app.utils.redis import (
+    consume_password_reset_token,
+    increment_rate_limit,
+    set_password_reset_token,
+)
 
 router = APIRouter()
+PASSWORD_RESET_MESSAGE = (
+    "If an account exists for that email, password reset instructions will be sent."
+)
 
 
 @router.post("/auth/register", response_model=TokenRead, status_code=status.HTTP_201_CREATED)
@@ -65,6 +88,111 @@ def login_user(payload: UserLogin, database: DatabaseSession) -> TokenRead:
         )
     access_token, expires_in = create_access_token(str(user.id))
     return TokenRead(access_token=access_token, expires_in=expires_in, user=user)
+
+
+@router.post(
+    "/auth/password-reset/request",
+    response_model=MessageRead,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def request_password_reset(
+    payload: PasswordResetRequest,
+    background_tasks: BackgroundTasks,
+    request: Request,
+    database: DatabaseSession,
+) -> MessageRead:
+    if not settings.email_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Password recovery is not configured on this service.",
+        )
+
+    email_digest = hashlib.sha256(payload.email.encode()).hexdigest()
+    client_host = request.client.host if request.client else "unknown"
+    host_digest = hashlib.sha256(client_host.encode()).hexdigest()
+    try:
+        attempts = await increment_rate_limit(
+            f"password-reset:email:{email_digest}",
+            settings.password_reset_request_window_seconds,
+        )
+        attempts_from_host = await increment_rate_limit(
+            f"password-reset:host:{host_digest}",
+            settings.password_reset_request_window_seconds,
+        )
+    except RedisError as error:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Password recovery is temporarily unavailable.",
+        ) from error
+
+    if (
+        attempts > settings.password_reset_email_request_limit
+        or attempts_from_host > settings.password_reset_host_request_limit
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many password reset requests. Try again later.",
+        )
+
+    reset_token = secrets.token_urlsafe(32)
+    token_digest = hashlib.sha256(reset_token.encode()).hexdigest()
+    expiration_seconds = settings.password_reset_token_minutes * 60
+    try:
+        await set_password_reset_token(
+            token_digest,
+            payload.email,
+            expiration_seconds,
+        )
+    except RedisError as error:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Password recovery is temporarily unavailable.",
+        ) from error
+
+    user = database.scalar(select(User).where(User.email == payload.email))
+    if user is not None:
+        background_tasks.add_task(
+            send_password_reset_email,
+            str(user.email),
+            user.full_name,
+            reset_token,
+            settings.password_reset_token_minutes,
+        )
+    return MessageRead(message=PASSWORD_RESET_MESSAGE)
+
+
+@router.post(
+    "/auth/password-reset/confirm",
+    response_model=MessageRead,
+)
+async def confirm_password_reset(
+    payload: PasswordResetConfirm,
+    database: DatabaseSession,
+) -> MessageRead:
+    token_digest = hashlib.sha256(payload.reset_token.encode()).hexdigest()
+    try:
+        token_email = await consume_password_reset_token(token_digest)
+    except RedisError as error:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Password recovery is temporarily unavailable.",
+        ) from error
+
+    if token_email is None or not compare_digest(token_email, payload.email):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This password reset code is invalid or expired.",
+        )
+
+    user = database.scalar(select(User).where(User.email == payload.email))
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This password reset code is invalid or expired.",
+        )
+
+    reset_account_password(database, user, payload.new_password)
+    return MessageRead(message="Your password has been reset. You can now sign in.")
 
 
 @router.get("/auth/me", response_model=UserRead)

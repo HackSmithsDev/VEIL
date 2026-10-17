@@ -4,7 +4,7 @@ export default function DashboardPage({ onNavigate }) {
       <div className="page-heading protection-page-heading">
         <div>
           <div className="eyebrow">VEIL GUARD</div>
-          <h1>Protection status</h1>
+          <h1>Protection</h1>
           <p>Manage local protection independently from your VEIL Cloud account.</p>
         </div>
         <button className="button button-secondary" type="button" onClick={() => onNavigate('setup')}>Setup</button>
@@ -37,10 +37,7 @@ export default function DashboardPage({ onNavigate }) {
         </article>
       </section>
 
-      <div className="protection-actions">
-        <button className="button button-primary" type="button" onClick={() => onNavigate('setup')}>Review setup steps</button>
-        <p>Your account is optional. Local protection will not require sign-in when it becomes available.</p>
-      </div>
+      <p className="protection-account-note">VEIL Cloud sign-in is optional. Local protection does not require an account.</p>
     </>
   )
 }

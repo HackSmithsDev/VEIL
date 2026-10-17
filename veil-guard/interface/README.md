@@ -6,21 +6,27 @@ enforce security policy, or own cloud persistence.
 
 ## Included in the first UI slice
 
-The current UI implements the account, profile, program-metadata, and feedback
-flows against VEIL Cloud, with a protection-focused status and setup experience:
+The current UI separates local protection and setup from optional VEIL Cloud
+features. It includes:
 
-- **Protection** — local Engine and connector readiness with honest active,
-  inactive, and unavailable states.
-- **Setup** — explains the separate platform installer and optional local model
-  setup. Installation itself is not implemented in this build.
-- **Sign in / Create account** — optional; only required for VEIL Cloud
-  profile, program metadata, and feedback features.
-- **Programs** — list and search the user's program metadata; create, edit, and
-  remove a record. AI-upgrade execution is not part of this initial slice.
-- **Profile** — view and edit basic account details.
-- **Feedback** — choose a category and submit a message. Tell users not to
-  include credentials, source code, confidential prompts, or other secrets.
-- **Account controls** — sign out from the account menu and view the app version.
+- **Protection** — shows Engine and connector readiness. The current build
+  reports that protection is off and does not inspect prompts or block leaks.
+- **Setup** — explains the Engine, optional local processing, and supported-app
+  setup boundaries. Installation and connector configuration are not implemented.
+- **Settings** — saves an Ollama loopback URL and preferred model name locally.
+  These are preferences for future Engine integration; this build does not
+  connect to Ollama, install models, or use them for protection.
+- **Account** — opens an in-app VEIL Cloud access dialog for sign-in or
+  registration and a backend-backed password-reset flow. Password reset
+  requires configured SMTP delivery and Redis storage in VEIL Cloud.
+- **Program Catalog and Feedback** — separate, optional Cloud pages. The
+  catalog is metadata, not a list of connected or protected apps.
+- **Uninstall** — Settings can move an installed VEIL Guard macOS app bundle
+  from `/Applications` or the user's `Applications` folder to the Trash. It
+  does not erase Cloud data or local preferences.
+
+The window opens at 620 × 440 and remains resizable. The Protection view is
+compact at its default size; longer pages scroll within the content area.
 
 Design every screen for loading, empty, validation, success, and recoverable
 failure states. The setup page is informational only: this build does not
@@ -36,7 +42,8 @@ src/
   components/layout/
                   App shell, navigation, and shared page framing
   hooks/          Cloud session and authentication state
-  pages/          Auth, dashboard, programs, profile, and feedback
+  pages/          Protection, setup readiness, local settings, and separate
+                  account, program-catalog, and feedback pages
 ```
 
 Keep network calls and response handling in the API layer, page composition in
@@ -69,10 +76,11 @@ npm install
 npm run dev
 ```
 
-The UI uses `https://veil-api.hacksmiths.dev/api/v1` by default. For local
-backend development, set `VITE_API_BASE_URL=http://127.0.0.1:8089/api/v1` in a
-local Vite environment file. The normal desktop workflow is `npx tauri dev` or
-`npx tauri build`. Both commands run Vite automatically: development serves
+Vite's checked-in `.env.development` and `.env.production` files configure the
+development and production API base URLs. Override `VITE_API_BASE_URL` in the
+build environment when targeting another service; the app rejects missing,
+malformed, or non-HTTPS remote endpoints. The normal desktop workflow is
+`npx tauri dev` or `npx tauri build`. Both commands run Vite automatically: development serves
 the UI to Tauri's WebView locally, and the production build embeds the generated
 assets into the desktop bundle. No separate website is deployed.
 `npm run build` alone only checks/builds the frontend assets and does not create

@@ -18,6 +18,14 @@ Build on macOS with Qt Installer Framework installed and `binarycreator` on
 python3 native/scripts/build.py
 ```
 
+On Apple Silicon, the official Qt Installer Framework 4.7 binary package is
+Intel-only and runs through Rosetta. If installed under `~/Qt`, build with:
+
+```bash
+QTIFW_BIN_DIR="$HOME/Qt/Tools/QtInstallerFramework/4.7/bin" \
+  python3 native/scripts/build.py
+```
+
 For a local unsigned test build only:
 
 ```bash

@@ -1,4 +1,6 @@
+import json
 import os
+import plistlib
 import sys
 import tempfile
 import unittest
@@ -30,6 +32,14 @@ class InstallerBuildTests(unittest.TestCase):
             self.assertRaisesRegex(FileNotFoundError, "binarycreator was not found"),
         ):
             build.find_binarycreator()
+
+    def test_builds_desktop_app_with_tauri_cli(self) -> None:
+        with patch.object(build.subprocess, "run") as run:
+            build.build_desktop_app(allow_unsigned=True)
+
+        command = run.call_args.args[0]
+        self.assertEqual(command[:4], ["npx", "tauri", "build", "--bundles"])
+        self.assertIn("--no-sign", command)
 
     def test_stages_app_bundle_and_syncs_package_version(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -100,6 +110,40 @@ class InstallerBuildTests(unittest.TestCase):
                 package_xml.findtext("ReleaseDate"),
                 build.date.today().isoformat(),
             )
+
+    def test_sets_installer_bundle_identity_from_tauri_config(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            tauri_root = root / "src-tauri"
+            bundle_info = root / "VEIL Guard Setup.app" / "Contents" / "Info.plist"
+            tauri_root.mkdir()
+            bundle_info.parent.mkdir(parents=True)
+            (tauri_root / "tauri.conf.json").write_text(
+                json.dumps(
+                    {
+                        "identifier": "com.example.veilguard",
+                        "productName": "VEIL Guard",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with bundle_info.open("wb") as info_plist_file:
+                plistlib.dump(
+                    {"CFBundleIdentifier": "com.yourcompany.installerbase"},
+                    info_plist_file,
+                )
+
+            with patch.object(build, "TAURI_ROOT", tauri_root):
+                build.update_installer_bundle_metadata(bundle_info.parents[1], "1.2.3")
+
+            with bundle_info.open("rb") as info_plist_file:
+                info_plist = plistlib.load(info_plist_file)
+            self.assertEqual(
+                info_plist["CFBundleIdentifier"],
+                "com.example.veilguard.installer",
+            )
+            self.assertEqual(info_plist["CFBundleDisplayName"], "VEIL Guard Setup")
+            self.assertEqual(info_plist["CFBundleShortVersionString"], "1.2.3")
 
 
 if __name__ == "__main__":

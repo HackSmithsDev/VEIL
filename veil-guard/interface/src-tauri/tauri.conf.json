@@ -14,9 +14,9 @@
       {
         "title": "VEIL Guard",
         "width": 620,
-        "height": 720,
+        "height": 440,
         "minWidth": 420,
-        "minHeight": 560,
+        "minHeight": 400,
         "resizable": true,
         "fullscreen": false
       }

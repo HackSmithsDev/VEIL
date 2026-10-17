@@ -20,6 +20,12 @@ class Settings(BaseSettings):
     redis_url: str = Field(default="redis://localhost:6379/0", min_length=1)
     jwt_secret: SecretStr = Field(min_length=32)
     access_token_minutes: int = Field(default=30, gt=0, le=1440)
+    password_reset_token_minutes: int = Field(default=30, gt=0, le=1440)
+    password_reset_email_request_limit: int = Field(default=5, gt=0, le=50)
+    password_reset_host_request_limit: int = Field(default=50, gt=0, le=1000)
+    password_reset_request_window_seconds: int = Field(
+        default=3600, gt=0, le=86400
+    )
     cors_origins: str = (
         "http://127.0.0.1:5176,http://localhost:5176,"
         "tauri://localhost,http://tauri.localhost"

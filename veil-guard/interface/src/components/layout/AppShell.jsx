@@ -1,8 +1,9 @@
 const navigation = [
-  { id: 'protection', label: 'Protection', icon: 'SH' },
-  { id: 'setup', label: 'Setup', icon: 'IN' },
-  { id: 'programs', label: 'Programs', icon: 'AP' },
-  { id: 'account', label: 'Account', icon: 'ME' },
+  { id: 'protection', label: 'Protection', icon: 'PR' },
+  { id: 'setup', label: 'Setup', icon: 'ST' },
+  { id: 'programs', label: 'Program Catalog', icon: 'PC' },
+  { id: 'account', label: 'Account', icon: 'AC' },
+  { id: 'settings', label: 'Settings', icon: 'CF' },
   { id: 'feedback', label: 'Feedback', icon: 'FB' },
 ]
 
@@ -49,8 +50,8 @@ export default function AppShell({ page, onNavigate, onLogout, user, children })
       <main className="main-content">
         <div className="page-content">{children}</div>
         <footer className="app-footer">
-          <span className="engine-state"><span /> Protection inactive</span>
-          <span>VEIL Guard · v0.1</span>
+          <span className="engine-state"><span /> Protection off</span>
+          <span>VEIL Guard</span>
         </footer>
       </main>
     </div>

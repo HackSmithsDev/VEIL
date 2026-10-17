@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import plistlib
 import shutil
 import subprocess
 import sys
@@ -66,7 +67,7 @@ def json_load(path: Path) -> dict[str, object]:
 
 
 def build_desktop_app(allow_unsigned: bool) -> None:
-    command = ["npm", "run", "tauri", "--", "build", "--bundles", "app", "--ci"]
+    command = ["npx", "tauri", "build", "--bundles", "app", "--ci"]
     if allow_unsigned:
         command.append("--no-sign")
     subprocess.run(command, cwd=INTERFACE_ROOT, check=True)
@@ -137,7 +138,37 @@ def build_installer(binarycreator: Path, version: str) -> Path:
         cwd=NATIVE_ROOT,
         check=True,
     )
+    update_installer_bundle_metadata(output_path, version)
     return output_path
+
+
+def update_installer_bundle_metadata(bundle_path: Path, version: str) -> None:
+    tauri_config = json_load(TAURI_ROOT / "tauri.conf.json")
+    identifier = tauri_config.get("identifier")
+    product_name = tauri_config.get("productName")
+    if not isinstance(identifier, str) or not identifier:
+        raise ValueError("Missing string identifier in Tauri configuration")
+    if not isinstance(product_name, str) or not product_name:
+        raise ValueError("Missing string productName in Tauri configuration")
+
+    info_plist_path = bundle_path / "Contents" / "Info.plist"
+    with info_plist_path.open("rb") as info_plist_file:
+        info_plist = plistlib.load(info_plist_file)
+    if not isinstance(info_plist, dict):
+        raise ValueError(f"Expected a dictionary in {info_plist_path}")
+
+    setup_name = f"{product_name} Setup"
+    info_plist.update(
+        {
+            "CFBundleIdentifier": f"{identifier}.installer",
+            "CFBundleName": setup_name,
+            "CFBundleDisplayName": setup_name,
+            "CFBundleShortVersionString": version,
+            "CFBundleVersion": version,
+        }
+    )
+    with info_plist_path.open("wb") as info_plist_file:
+        plistlib.dump(info_plist, info_plist_file)
 
 
 def main(argv: list[str] | None = None) -> int:

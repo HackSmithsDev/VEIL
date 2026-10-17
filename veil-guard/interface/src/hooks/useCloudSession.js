@@ -18,6 +18,20 @@ export function useCloudSession() {
     (details) => authenticate('/auth/register', details),
     [authenticate],
   )
+  const requestPasswordReset = useCallback(
+    (details) => cloudRequest('/auth/password-reset/request', {
+      method: 'POST',
+      body: details,
+    }),
+    [],
+  )
+  const confirmPasswordReset = useCallback(
+    (details) => cloudRequest('/auth/password-reset/confirm', {
+      method: 'POST',
+      body: details,
+    }),
+    [],
+  )
   const logout = useCallback(() => setSession(null), [])
 
   const request = useCallback(
@@ -39,6 +53,8 @@ export function useCloudSession() {
     isAuthenticated: Boolean(session?.token),
     login,
     register,
+    requestPasswordReset,
+    confirmPasswordReset,
     logout,
     request,
     updateUser,

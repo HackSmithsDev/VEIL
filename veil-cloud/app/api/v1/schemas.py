@@ -33,6 +33,30 @@ class UserLogin(BaseModel):
         return value.lower()
 
 
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        return value.lower()
+
+
+class PasswordResetConfirm(BaseModel):
+    email: EmailStr
+    reset_token: str = Field(min_length=32, max_length=128)
+    new_password: str = Field(min_length=12, max_length=128)
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        return value.lower()
+
+
+class MessageRead(BaseModel):
+    message: str
+
+
 class UserProfileUpdate(BaseModel):
     full_name: str = Field(min_length=1, max_length=120)
 

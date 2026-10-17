@@ -15,6 +15,7 @@ export default function ProgramsPage({ request }) {
   const loadPrograms = useCallback(async () => {
     try {
       setPrograms(await request('/programs'))
+      setError('')
     } catch (requestError) {
       setError(requestError.message)
     } finally {
@@ -79,7 +80,7 @@ export default function ProgramsPage({ request }) {
   return (
     <>
       <div className="page-heading">
-        <div><div className="eyebrow">YOUR CATALOG</div><h1>My programs</h1><p>Keep basic program details together. Source code is never collected here.</p></div>
+        <div><div className="eyebrow">VEIL CLOUD CATALOG</div><h1>Program metadata</h1><p>Keep basic program details together. This catalog is not a list of connected or protected apps.</p></div>
         <button className="button button-primary" type="button" onClick={() => openForm()}><span>＋</span> Add program</button>
       </div>
       <div className="privacy-note"><span className="privacy-note-icon">i</span><span><strong>Metadata only.</strong> Add the name, version, and platform. This is not a source-code upload or upgrade request.</span></div>

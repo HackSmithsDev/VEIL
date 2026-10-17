@@ -57,6 +57,11 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
         "send_feedback_emails",
         lambda user_email, full_name, category, feedback_message: None,
     )
+    monkeypatch.setattr(
+        routes,
+        "send_password_reset_email",
+        lambda recipient, full_name, reset_token, expiration_minutes: None,
+    )
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
@@ -118,6 +123,164 @@ def test_authentication_and_duplicate_registration(client: TestClient) -> None:
     assert bad_login.status_code == 401
     assert client.get("/api/v1/profile", headers={"Authorization": "Bearer invalid"}).status_code == 401
     assert headers["Authorization"].startswith("Bearer ")
+
+
+def test_password_reset_request_and_confirmation(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    register(client)
+    token_store: dict[str, str] = {}
+    rate_limits: dict[str, int] = {}
+    sent: list[tuple[str, str, str, int]] = []
+
+    async def increment_rate_limit(key: str, _expire_seconds: int) -> int:
+        rate_limits[key] = rate_limits.get(key, 0) + 1
+        return rate_limits[key]
+
+    async def set_password_reset_token(
+        token_digest: str,
+        email: str,
+        _expire_seconds: int,
+    ) -> None:
+        token_store[token_digest] = email
+
+    async def consume_password_reset_token(token_digest: str) -> str | None:
+        return token_store.pop(token_digest, None)
+
+    monkeypatch.setattr(
+        routes,
+        "settings",
+        type(
+            "ResetSettings",
+            (),
+            {
+                "email_enabled": True,
+                "password_reset_request_window_seconds": 3600,
+                "password_reset_email_request_limit": 5,
+                "password_reset_host_request_limit": 50,
+                "password_reset_token_minutes": 30,
+            },
+        )(),
+    )
+    monkeypatch.setattr(routes, "increment_rate_limit", increment_rate_limit)
+    monkeypatch.setattr(routes, "set_password_reset_token", set_password_reset_token)
+    monkeypatch.setattr(
+        routes,
+        "consume_password_reset_token",
+        consume_password_reset_token,
+    )
+    monkeypatch.setattr(
+        routes,
+        "send_password_reset_email",
+        lambda recipient, full_name, reset_token, expiration_minutes: sent.append(
+            (recipient, full_name, reset_token, expiration_minutes)
+        ),
+    )
+
+    request = client.post(
+        "/api/v1/auth/password-reset/request",
+        json={"email": "ada@example.com"},
+    )
+    unknown_request = client.post(
+        "/api/v1/auth/password-reset/request",
+        json={"email": "unknown@example.com"},
+    )
+    assert request.status_code == 202
+    assert request.json() == unknown_request.json()
+    assert len(sent) == 1
+    recipient, _full_name, reset_token, expiration_minutes = sent[0]
+    assert recipient == "ada@example.com"
+    assert expiration_minutes == 30
+    assert len(token_store) == 2
+
+    confirmation = client.post(
+        "/api/v1/auth/password-reset/confirm",
+        json={
+            "email": "ada@example.com",
+            "reset_token": reset_token,
+            "new_password": "a-new-correct-horse-battery",
+        },
+    )
+    assert confirmation.status_code == 200
+    assert client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": "ada@example.com",
+            "password": "a-new-correct-horse-battery",
+        },
+    ).status_code == 200
+    assert client.post(
+        "/api/v1/auth/password-reset/confirm",
+        json={
+            "email": "ada@example.com",
+            "reset_token": reset_token,
+            "new_password": "another-new-correct-horse-battery",
+        },
+    ).status_code == 400
+
+
+def test_password_reset_is_unavailable_without_email_delivery(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        routes,
+        "settings",
+        type("ResetSettings", (), {"email_enabled": False})(),
+    )
+
+    response = client.post(
+        "/api/v1/auth/password-reset/request",
+        json={"email": "ada@example.com"},
+    )
+
+    assert response.status_code == 503
+    assert "not configured" in response.json()["detail"]
+
+
+def test_password_reset_requests_are_rate_limited_per_email(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    counts: dict[str, int] = {}
+    tokens: list[tuple[str, str, int]] = []
+
+    async def increment_rate_limit(key: str, _expire_seconds: int) -> int:
+        counts[key] = counts.get(key, 0) + 1
+        return counts[key]
+
+    async def set_password_reset_token(
+        token_digest: str,
+        email: str,
+        expire_seconds: int,
+    ) -> None:
+        tokens.append((token_digest, email, expire_seconds))
+
+    monkeypatch.setattr(
+        routes,
+        "settings",
+        type(
+            "ResetSettings",
+            (),
+            {
+                "email_enabled": True,
+                "password_reset_request_window_seconds": 3600,
+                "password_reset_email_request_limit": 1,
+                "password_reset_host_request_limit": 50,
+                "password_reset_token_minutes": 30,
+            },
+        )(),
+    )
+    monkeypatch.setattr(routes, "increment_rate_limit", increment_rate_limit)
+    monkeypatch.setattr(routes, "set_password_reset_token", set_password_reset_token)
+
+    payload = {"email": "unknown@example.com"}
+    assert client.post("/api/v1/auth/password-reset/request", json=payload).status_code == 202
+    limited = client.post("/api/v1/auth/password-reset/request", json=payload)
+
+    assert limited.status_code == 429
+    assert len(tokens) == 1
 
 
 def test_programs_are_user_scoped_and_crud_works(client: TestClient) -> None:

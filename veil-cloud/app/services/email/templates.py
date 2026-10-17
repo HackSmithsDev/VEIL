@@ -23,6 +23,32 @@ def render_welcome_email(full_name: str) -> tuple[str, str, str]:
     return subject, text, html
 
 
+def render_password_reset_email(
+    full_name: str,
+    reset_token: str,
+    expiration_minutes: int,
+) -> tuple[str, str, str]:
+    name = full_name.strip() or "there"
+    subject = "Reset your VEIL Guard password"
+    text = (
+        f"Hi {name},\n\n"
+        "Use this one-time code in VEIL Guard to reset your password:\n\n"
+        f"{reset_token}\n\n"
+        f"This code expires in {expiration_minutes} minutes. If you did not "
+        "request a password reset, you can ignore this email.\n\n"
+        "The VEIL Guard team"
+    )
+    html = (
+        f"<p>Hi {escape(name)},</p>"
+        "<p>Use this one-time code in VEIL Guard to reset your password:</p>"
+        f"<p><code>{escape(reset_token)}</code></p>"
+        f"<p>This code expires in {expiration_minutes} minutes. If you did not "
+        "request a password reset, you can ignore this email.</p>"
+        "<p>The VEIL Guard team</p>"
+    )
+    return subject, text, html
+
+
 def render_feedback_receipt(full_name: str, category: str) -> tuple[str, str, str]:
     name = full_name.strip() or "there"
     safe_category = category.replace("_", " ")

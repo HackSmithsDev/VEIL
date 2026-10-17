@@ -23,6 +23,8 @@ ENV/
 .env
 .env.*
 !.env.example
+!veil-guard/interface/.env.development
+!veil-guard/interface/.env.production
 
 # Test / coverage
 

@@ -111,8 +111,11 @@ API documentation is served at `http://127.0.0.1:8089/docs`. Run tests with
 `pytest`. `docker compose up --build` from the repository root starts the
 PostgreSQL-backed API after configuring `veil-cloud/.env`.
 
-This is an MVP, not a production-hardened identity service: it has short-lived
-bearer tokens but no refresh-token flow, password reset, email verification, or
-rate limiting yet. Redis OTP storage is available for a future password-reset
-flow, but those API endpoints are not implemented yet. Welcome and feedback
-emails are notifications, not proof of verified email ownership.
+Password reset uses a one-time, expiring token delivered through configured
+SMTP and stored as a digest in Redis. Requests are rate-limited per email and
+client address and use a uniform response to avoid account enumeration. The
+service returns a configuration error when SMTP is not available. The API is
+still an MVP: access tokens are short-lived, there is no refresh-token flow or
+email verification, and existing access tokens remain valid until they expire
+after a password change. Welcome and feedback emails are notifications, not
+proof of verified email ownership.

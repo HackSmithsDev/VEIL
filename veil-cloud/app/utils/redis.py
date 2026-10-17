@@ -20,6 +20,49 @@ async def delete_otp(email: str) -> None:
     await redis_client.delete(f"otp:{email}")
 
 
+async def increment_rate_limit(key: str, expire_seconds: int) -> int:
+    count = await redis_client.eval(
+        """
+        local count = redis.call('INCR', KEYS[1])
+        if count == 1 then
+            redis.call('EXPIRE', KEYS[1], ARGV[1])
+        end
+        return count
+        """,
+        1,
+        key,
+        expire_seconds,
+    )
+    return int(count)
+
+
+async def set_password_reset_token(
+    token_digest: str,
+    email: str,
+    expire_seconds: int,
+) -> None:
+    await redis_client.set(
+        f"password-reset:{token_digest}",
+        email,
+        ex=expire_seconds,
+    )
+
+
+async def consume_password_reset_token(token_digest: str) -> str | None:
+    value = await redis_client.eval(
+        """
+        local value = redis.call('GET', KEYS[1])
+        if value then
+            redis.call('DEL', KEYS[1])
+        end
+        return value
+        """,
+        1,
+        f"password-reset:{token_digest}",
+    )
+    return value
+
+
 async def set_refresh_token(user_id: str, token: str, expire_seconds: int) -> None:
     await redis_client.set(f"refresh:{user_id}", token, ex=expire_seconds)
 

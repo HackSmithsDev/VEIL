@@ -6,6 +6,7 @@ from app.services.email.client import EmailDeliveryError, build_message, send_me
 from app.services.email.templates import (
     render_feedback_notification,
     render_feedback_receipt,
+    render_password_reset_email,
     render_welcome_email,
 )
 
@@ -32,6 +33,26 @@ def send_welcome_email(recipient: str, full_name: str) -> None:
     subject, text, html = render_welcome_email(full_name)
     message = build_message(recipient, subject, text, html)
     deliver_email(message, "welcome")
+
+
+def send_password_reset_email(
+    recipient: str,
+    full_name: str,
+    reset_token: str,
+    expiration_minutes: int,
+) -> None:
+    if not settings.email_enabled:
+        logger.warning("Skipped password reset email because SMTP is not configured")
+        return
+    subject, text, html = render_password_reset_email(
+        full_name,
+        reset_token,
+        expiration_minutes,
+    )
+    deliver_email(
+        build_message(recipient, subject, text, html),
+        "password reset",
+    )
 
 
 def send_feedback_emails(

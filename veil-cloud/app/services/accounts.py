@@ -40,3 +40,8 @@ def update_account_profile(
     database.commit()
     database.refresh(user)
     return user
+
+
+def reset_account_password(database: Session, user: User, password: str) -> None:
+    user.password_hash = hash_password(password)
+    database.commit()

@@ -23,6 +23,7 @@ export default function FeedbackPage({ request }) {
   const loadFeedback = useCallback(async () => {
     try {
       setFeedback(await request('/feedback'))
+      setError('')
     } catch (requestError) {
       setError(requestError.message)
     } finally {
@@ -72,7 +73,7 @@ export default function FeedbackPage({ request }) {
           </form>
         </section>
         <aside className="feedback-aside">
-          <div className="feedback-promise"><span className="promise-icon">V</span><h2>Small details make a difference.</h2><p>Your feedback is attached to your account so you can keep track of what you’ve shared.</p><div className="promise-foot"><span className="connection-dot" /> Private to your account</div></div>
+          <div className="feedback-promise"><span className="promise-icon">V</span><h2>Small details make a difference.</h2><p>Your feedback is attached to your account so you can keep track of what you’ve shared.</p><div className="promise-foot"><span className="connection-dot" /> Associated with your account</div></div>
           <section className="feedback-history">
             <div className="section-heading"><div><div className="eyebrow">YOUR NOTES</div><h2>Recent feedback</h2></div></div>
             {loading ? <div className="loading-row">Loading…</div> : feedback.length ? feedback.slice(0, 3).map((item) => (

@@ -171,6 +171,11 @@
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
 
 .profile-card { max-width: 670px; padding: 22px; }
+.account-cloud-card { display: flex; max-width: 670px; align-items: flex-start; gap: 15px; padding: 22px; }
+.account-cloud-icon { display: grid; width: 40px; height: 40px; flex: 0 0 auto; place-items: center; border-radius: 11px; color: #5f50c7; background: #f1efff; font-size: 10px; font-weight: 750; }
+.account-cloud-copy h2 { margin: 1px 0 5px; color: #36394a; font: 650 13px 'Manrope', sans-serif; }
+.account-cloud-copy p { max-width: 390px; margin: 0 0 13px; color: #8d91a0; font-size: 9px; line-height: 1.6; }
+.account-cloud-copy .button { gap: 9px; }
 .profile-card-heading { display: flex; align-items: center; gap: 13px; padding-bottom: 18px; border-bottom: 1px solid #eff0f4; }
 .profile-avatar { width: 44px; height: 44px; color: #5c4ec5; background: #f0efff; font-size: 13px; }
 .profile-card-heading h2 { margin: 0 0 5px; color: #36394a; font: 650 13px 'Manrope', sans-serif; }
@@ -226,7 +231,6 @@
 .auth-switch button { padding: 0; border: 0; color: #6051ca; background: transparent; font-size: 9px; font-weight: 600; }
 .auth-switch button:hover { color: #4031ad; }
 .auth-footnote { max-width: 400px; margin: 17px 0 0; color: #9094a2; font-size: 9px; line-height: 1.6; text-align: center; }
-.auth-api { position: absolute; right: 14px; bottom: 10px; max-width: 45%; overflow: hidden; color: #b1b4c0; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
 .auth-decoration { position: absolute; width: 200px; height: 200px; border: 1px solid rgb(105 88 220 / 7%); border-radius: 42%; pointer-events: none; }
 .auth-decoration-one { top: 20%; left: 10%; transform: rotate(28deg); }.auth-decoration-two { right: 9%; bottom: 19%; transform: rotate(-23deg); }
 
@@ -299,14 +303,15 @@
   .form-grid { grid-template-columns: 1fr; }
   .auth-card { padding: 27px 23px 23px; }
   .auth-brand { top: 20px; left: 20px; }
-  .auth-api { display: none; }
 }
 
-#root { min-height: 100vh; }
+#root { height: 100vh; min-height: 0; }
 
 .app-shell {
-  min-height: 100vh;
+  height: 100%;
+  min-height: 0;
   flex-direction: column;
+  overflow: hidden;
   background: var(--canvas);
 }
 
@@ -341,14 +346,15 @@
 }
 
 .utility-nav .nav-item {
+  min-width: 0;
   width: auto;
   height: 32px;
   gap: 7px;
-  padding: 0 10px;
+  padding: 0 7px;
   border: 1px solid transparent;
   border-radius: 7px;
   color: #727687;
-  font-size: 10px;
+  font-size: 9px;
 }
 
 .utility-nav .nav-item:hover { color: #39334f; background: #f8f7ff; }
@@ -356,15 +362,17 @@
 .utility-nav .nav-icon { width: 19px; height: 19px; border-color: #e7e8ee; color: #85899a; background: #fff; font-size: 7px; }
 .utility-nav .nav-item.active .nav-icon { border-color: #ddd8fb; color: #6556cf; background: #fff; }
 .utility-nav .nav-indicator { display: none; }
-
 .main-content {
   min-height: 0;
   margin-left: 0;
+  overflow-y: auto;
+  padding-bottom: 0;
   background: var(--canvas);
 }
 
 .page-content {
   width: min(700px, 100%);
+  flex: 0 0 auto;
   padding: 22px 22px 24px;
 }
 
@@ -375,12 +383,12 @@
   background: transparent;
 }
 
-.page-content .auth-brand,
-.page-content .auth-api { display: none; }
+.page-content .auth-brand { display: none; }
 .page-content .auth-card { width: min(380px, 100%); }
 
 .app-footer {
   align-items: center;
+  margin-top: auto;
   padding: 10px 22px;
   border-top: 1px solid var(--line);
   background: #fff;
@@ -389,6 +397,7 @@
 
 .engine-state { display: inline-flex; align-items: center; gap: 7px; }
 .engine-state > span { width: 7px; height: 7px; border-radius: 50%; background: #d5a342; }
+.protection-account-note { margin: 13px 0 0; color: #9296a5; font-size: 9px; line-height: 1.5; }
 
 .welcome-panel {
   min-height: 160px;
@@ -431,6 +440,7 @@
 .feedback-history .section-heading { margin-bottom: 7px; }
 .feedback-item { padding: 8px 0; }
 .profile-card { padding: 16px; }
+.account-cloud-card { padding: 16px; }
 .profile-form { gap: 12px; padding-top: 14px; }
 .account-boundary { margin-top: 10px; padding: 12px; }
 
@@ -444,13 +454,25 @@
 .auth-brand .brand-mark { width: 29px; height: 29px; border-radius: 8px; font-size: 16px; }
 .auth-brand .brand-name { font-size: 13px; }
 .auth-card { width: min(380px, 100%); padding: 23px 24px 20px; border-radius: 11px; box-shadow: 0 8px 28px rgb(36 37 58 / 6%); }
+.auth-back-button { margin: 0 0 16px; padding: 0; border: 0; color: #6d62b8; background: transparent; font-size: 9px; font-weight: 600; }
+.auth-back-button:hover { color: #4434b3; }
 .auth-card h1 { margin-top: 10px; font-size: 20px; }
 .auth-subtitle { margin-bottom: 15px; }
 .auth-card .form-stack { gap: 10px; }
 .auth-card .field input { min-height: 38px; }
 .auth-switch { margin-top: 14px; }
 .auth-footnote { max-width: 380px; margin-top: 12px; }
-.auth-api { right: 10px; bottom: 7px; }
+.auth-forgot-button { display: block; margin: 10px 0 0 auto; padding: 0; border: 0; color: #6d62b8; background: transparent; font-size: 9px; font-weight: 600; }
+.auth-forgot-button:hover { color: #4434b3; }
+
+.cloud-access-backdrop { position: fixed; z-index: 20; inset: 0; display: grid; place-items: center; padding: 18px; background: rgb(23 25 42 / 54%); backdrop-filter: blur(3px); }
+.cloud-access-modal { position: relative; width: min(440px, 100%); max-height: calc(100vh - 36px); overflow-y: auto; padding: 24px; border: 1px solid #eeedf3; border-radius: 14px; background: #fff; box-shadow: 0 20px 70px rgb(17 18 34 / 25%); }
+.cloud-access-close { position: absolute; z-index: 1; top: 12px; right: 13px; display: grid; width: 28px; height: 28px; place-items: center; padding: 0; border: 0; border-radius: 7px; color: #85899a; background: transparent; font-size: 21px; }
+.cloud-access-close:hover { color: #45485a; background: #f5f4f9; }
+.cloud-access-modal .auth-card { width: 100%; padding: 4px 0 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.cloud-access-modal .auth-eyebrow { padding-right: 30px; }
+.cloud-access-modal .auth-footnote { margin-bottom: 0; }
+
 
 .cloud-account-gate {
   display: flex;
@@ -502,9 +524,6 @@
 .status-pill { flex: 0 0 auto; padding: 4px 7px; border-radius: 5px; font-size: 7px; font-weight: 600; }
 .status-pill-off { color: #9a6d25; background: #fff5df; }
 .status-pill-pending { color: #777b8b; background: #f2f3f6; }
-.protection-actions { display: flex; align-items: center; gap: 11px; margin-top: 13px; }
-.protection-actions p { margin: 0; color: #9296a5; font-size: 8px; line-height: 1.5; }
-
 .setup-page-heading { align-items: center; }
 .platform-chip {
   flex: 0 0 auto;
@@ -547,8 +566,6 @@
 .setup-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .setup-card-heading h2 { margin: 4px 0 0; color: #333647; font: 700 13px/1.35 'Manrope', sans-serif; }
 .setup-progress-label { color: #9296a5; font-size: 8px; white-space: nowrap; }
-.setup-progress-track { height: 4px; overflow: hidden; margin-top: 12px; border-radius: 4px; background: #eeeef3; }
-.setup-progress-track span { display: block; width: 0; height: 100%; border-radius: inherit; background: var(--violet); }
 .setup-steps { display: grid; gap: 0; margin: 5px 0 0; padding: 0; list-style: none; }
 .setup-step { display: flex; gap: 11px; padding: 13px 0; border-bottom: 1px solid #f0f0f4; }
 .setup-step:last-child { border-bottom: 0; }
@@ -564,10 +581,25 @@
 .setup-consent-note p { margin: 0; color: #747689; font-size: 8px; line-height: 1.55; }
 .setup-install-button { width: 100%; margin-top: 11px; }
 
+.settings-card, .uninstall-card { padding: 18px; }
+.settings-card .card-title { margin-bottom: 12px; }
+.settings-availability { margin-bottom: 14px; padding: 10px 11px; border: 1px solid #eee2c4; border-radius: 7px; color: #796d55; background: #fffaf0; font-size: 9px; line-height: 1.55; }
+.settings-availability strong { color: #614d23; }
+.settings-form { max-width: 480px; gap: 12px; }
+.settings-form .field { gap: 5px; }
+.settings-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.button-danger { color: #fff; background: #b94b5a; }
+.button-danger:hover:not(:disabled) { background: #9e3948; }
+.uninstall-card { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-top: 13px; border-color: #f0dfe2; }
+.uninstall-card h2 { margin: 4px 0; color: #4a3740; font: 700 12px/1.4 'Manrope', sans-serif; }
+.uninstall-card p { max-width: 410px; margin: 0; color: #89808a; font-size: 9px; line-height: 1.55; }
+.uninstall-confirm { display: grid; flex: 0 1 300px; gap: 8px; color: #6c555b; font-size: 9px; line-height: 1.5; }
+.uninstall-confirm strong { color: #543b42; font-size: 10px; }
+
 @media (max-width: 520px) {
   .utility-header { min-height: 54px; padding: 0 13px; }
   .utility-account-copy { display: none; }
-  .utility-nav { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); justify-content: initial; gap: 1px; padding: 5px 6px; }
+  .utility-nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); justify-content: initial; gap: 1px; padding: 5px 6px; }
   .utility-nav .nav-item { min-width: 0; justify-content: center; gap: 3px; padding: 0 2px; font-size: 8px; }
   .utility-nav .nav-icon { width: 17px; height: 17px; }
   .page-content { padding: 15px 12px 18px; }
@@ -582,9 +614,28 @@
   .feedback-aside { grid-template-columns: 1fr; }
   .auth-card { padding: 21px 18px 18px; }
   .auth-footnote { font-size: 8px; }
-  .protection-actions { align-items: flex-start; flex-direction: column; }
   .protection-checks { padding: 0 9px; }
   .status-pill { font-size: 7px; }
   .setup-page-heading { align-items: flex-start; }
   .platform-chip { margin-top: 2px; }
+  .uninstall-card { flex-direction: column; }
+  .uninstall-confirm { flex-basis: auto; }
+}
+
+@media (max-height: 560px) {
+  .utility-header { min-height: 50px; }
+  .utility-nav { min-height: 39px; padding-top: 3px; padding-bottom: 3px; }
+  .page-content { padding-top: 14px; padding-bottom: 14px; }
+  .app-footer { padding-top: 8px; padding-bottom: 8px; }
+
+  .protection-page-heading { margin-bottom: 9px; }
+  .protection-page-heading h1 { margin: 3px 0 2px; font-size: 18px; }
+  .protection-page-heading p { font-size: 9px; line-height: 1.4; }
+  .protection-status-card { gap: 9px; padding: 10px; }
+  .protection-status-indicator { width: 27px; height: 27px; }
+  .protection-status-copy h2 { font-size: 14px; }
+  .protection-status-copy p { font-size: 8px; line-height: 1.4; }
+  .protection-checks { margin-top: 8px; padding-right: 9px; padding-left: 9px; }
+  .protection-check { min-height: 39px; gap: 8px; }
+  .protection-check-icon { width: 22px; height: 22px; }
 }
