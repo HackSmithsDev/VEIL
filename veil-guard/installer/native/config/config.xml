@@ -8,20 +8,19 @@
     <InstallerApplicationIcon>veilguard</InstallerApplicationIcon>
     <Logo>veilguard.png</Logo>
     <TargetDir>@ApplicationsDirUser@</TargetDir>
-    
+
     <!-- Window Dimensions -->
     <WizardStyle>Modern</WizardStyle>
     <WizardDefaultWidth>680</WizardDefaultWidth>
     <WizardDefaultHeight>460</WizardDefaultHeight>
     <WizardShowPageList>true</WizardShowPageList>
-    
+
     <StyleSheet>veilguard.qss</StyleSheet>
-    
-    <RunProgram>/usr/bin/open</RunProgram>
-    <RunProgramArguments>
-        <Argument>@TargetDir@/VEIL Guard.app</Argument>
-    </RunProgramArguments>
+
+    <!-- Direct path to the executable inside the bundle -->
+    <RunProgram>@TargetDir@/VEIL Guard.app/Contents/MacOS/app</RunProgram>
     <RunProgramDescription>Launch VEIL Guard</RunProgramDescription>
+
     <RemoteRepositories>
     </RemoteRepositories>
 </Installer>

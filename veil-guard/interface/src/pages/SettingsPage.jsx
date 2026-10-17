@@ -63,8 +63,7 @@ export default function SettingsPage() {
   const [preferredModel, setPreferredModel] = useState(initial.values.preferredModel)
   const [error, setError] = useState(initial.error)
   const [notice, setNotice] = useState('')
-  const [isConfirmingRemoval, setIsConfirmingRemoval] = useState(false)
-  const [isRemoving, setIsRemoving] = useState(false)
+  const [isLaunching, setIsLaunching] = useState(false)
 
   function savePreferences(event) {
     event.preventDefault()
@@ -101,15 +100,14 @@ export default function SettingsPage() {
     setNotice('')
   }
 
-  async function uninstall() {
-    setIsRemoving(true)
+  async function launchUninstaller() {
+    setIsLaunching(true)
     setError('')
     try {
-      await invoke('uninstall_application')
-    } catch (uninstallError) {
-      setError(`Could not uninstall VEIL Guard: ${uninstallError.message || uninstallError}`)
-      setIsRemoving(false)
-      setIsConfirmingRemoval(false)
+      await invoke('launch_maintenance_tool')
+    } catch (launchError) {
+      setError(`Could not launch uninstaller: ${launchError.message || launchError}`)
+      setIsLaunching(false)
     }
   }
 
@@ -167,24 +165,16 @@ export default function SettingsPage() {
         <div>
           <div className="eyebrow">VEIL GUARD APPLICATION</div>
           <h2>Uninstall VEIL Guard</h2>
-          <p>Move the installed app to the macOS Trash. This does not erase your VEIL Cloud account or saved local preferences.</p>
+          <p>Launch the VEIL Guard Maintenance Tool to completely remove the application and its installed files from this Mac.</p>
         </div>
-        {!isConfirmingRemoval ? (
-          <button className="button button-danger" type="button" onClick={() => setIsConfirmingRemoval(true)}>
-            Uninstall…
-          </button>
-        ) : (
-          <div className="uninstall-confirm" role="alert">
-            <strong>Remove only the VEIL Guard app?</strong>
-            <span>The app will quit after Finder moves it to the Trash. You can restore it from the Trash before emptying it.</span>
-            <div className="settings-actions">
-              <button className="button button-quiet" type="button" disabled={isRemoving} onClick={() => setIsConfirmingRemoval(false)}>Keep VEIL Guard</button>
-              <button className="button button-danger" type="button" disabled={isRemoving} onClick={uninstall}>
-                {isRemoving ? 'Removing…' : 'Move app to Trash'}
-              </button>
-            </div>
-          </div>
-        )}
+        <button
+          className="button button-danger"
+          type="button"
+          disabled={isLaunching}
+          onClick={launchUninstaller}
+        >
+          {isLaunching ? 'Launching Uninstaller…' : 'Uninstall VEIL Guard'}
+        </button>
       </section>
     </>
   )

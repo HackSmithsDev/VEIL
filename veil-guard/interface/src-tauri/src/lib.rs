@@ -1,12 +1,15 @@
 #[tauri::command]
-fn uninstall_application(app: tauri::AppHandle) -> Result<(), String> {
+fn launch_maintenance_tool(app: tauri::AppHandle) -> Result<(), String> {
   #[cfg(target_os = "macos")]
   {
-    use std::path::Path;
+    use std::path::PathBuf;
     use std::process::Command;
 
+    // 1. Locate current running executable
     let executable = std::env::current_exe()
       .map_err(|error| format!("Could not locate VEIL Guard: {error}"))?;
+
+    // 2. Resolve the enclosing .app bundle
     let bundle = executable
       .ancestors()
       .find(|path| path.extension().is_some_and(|extension| extension == "app"))
@@ -18,49 +21,76 @@ fn uninstall_application(app: tauri::AppHandle) -> Result<(), String> {
 
     let bundle = std::fs::canonicalize(bundle)
       .map_err(|error| format!("Could not resolve the app location: {error}"))?;
-    let home_app = std::env::var_os("HOME")
-      .map(|home| Path::new(&home).join("Applications").join("VEIL Guard.app"));
-    let allowed_locations = [
-      Some(Path::new("/Applications/VEIL Guard.app").to_path_buf()),
-      home_app,
-    ];
-    if !allowed_locations.iter().flatten().any(|location| {
-      std::fs::canonicalize(location).is_ok_and(|allowed| allowed == bundle)
-    }) {
+
+    // 3. Safety Check: Verify the app is running from an official Applications directory
+    let home_dir = std::env::var_os("HOME").map(PathBuf::from);
+    let mut allowed_base_locations = vec![PathBuf::from("/Applications")];
+    if let Some(home) = home_dir {
+      allowed_base_locations.push(home.join("Applications"));
+    }
+
+    let is_in_allowed_location = allowed_base_locations.iter().any(|allowed| {
+      if let Ok(canonical_allowed) = std::fs::canonicalize(allowed) {
+        bundle.starts_with(&canonical_allowed)
+      } else {
+        false
+      }
+    });
+
+    if !is_in_allowed_location {
       return Err(
-        "For safety, VEIL Guard can only remove its installed app from Applications."
+        "For safety, VEIL Guard uninstallation can only be triggered from an installed Applications directory."
           .to_owned(),
       );
     }
 
+    // 4. Identity Check: Verify CFBundleIdentifier using plutil
     let info_plist = bundle.join("Contents/Info.plist");
     let identifier = Command::new("/usr/bin/plutil")
       .args(["-extract", "CFBundleIdentifier", "raw", "-o", "-"])
       .arg(&info_plist)
       .output()
       .map_err(|error| format!("Could not verify the app bundle: {error}"))?;
+
     if !identifier.status.success()
       || String::from_utf8_lossy(&identifier.stdout).trim() != "com.hacksmiths.veilguard"
     {
       return Err("The selected app bundle is not the VEIL Guard application.".to_owned());
     }
 
-    let script = "on run argv\n tell application \"Finder\" to delete (POSIX file (item 1 of argv))\nend run";
-    let result = Command::new("/usr/bin/osascript")
-      .arg("-e")
-      .arg(script)
-      .arg(bundle.as_os_str())
-      .output()
-      .map_err(|error| format!("Could not move VEIL Guard to the Trash: {error}"))?;
-    if !result.status.success() {
-      let detail = String::from_utf8_lossy(&result.stderr).trim().to_owned();
-      return Err(if detail.is_empty() {
-        "Finder could not move VEIL Guard to the Trash.".to_owned()
-      } else {
-        format!("Finder could not move VEIL Guard to the Trash: {detail}")
-      });
+    // 5. Locate maintenancetool in the installation directory
+    let install_dir = bundle
+      .parent()
+      .ok_or_else(|| "Could not resolve application parent directory.".to_owned())?;
+
+    let candidate_app = install_dir.join("maintenancetool.app");
+    let candidate_bin = install_dir.join("maintenancetool");
+
+    let tool_path: PathBuf = if candidate_app.exists() {
+      candidate_app
+    } else if candidate_bin.exists() {
+      candidate_bin
+    } else {
+      return Err(format!(
+        "Maintenance tool not found at {}. Ensure VEIL Guard was installed via the setup installer.",
+        install_dir.display()
+      ));
+    };
+
+    // 6. Launch maintenancetool directly into uninstall mode
+    let status = Command::new("/usr/bin/open")
+      .arg("-n")
+      .arg(&tool_path)
+      .arg("--args")
+      .arg("--uninstall-only")
+      .status()
+      .map_err(|error| format!("Failed to launch maintenance tool: {error}"))?;
+
+    if !status.success() {
+      return Err("Failed to start the maintenance tool process.".to_owned());
     }
 
+    // 7. Gracefully exit app
     app.exit(0);
     return Ok(());
   }
@@ -85,7 +115,7 @@ pub fn run() {
       }
       Ok(())
     })
-    .invoke_handler(tauri::generate_handler![uninstall_application])
+    .invoke_handler(tauri::generate_handler![launch_maintenance_tool])
     .run(tauri::generate_context!())
     .expect("error while building tauri application");
 }
