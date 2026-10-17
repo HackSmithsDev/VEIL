@@ -89,12 +89,17 @@ Engine remains unimplemented and is intentionally out of scope.
 
 ## Run locally
 
-Configure a random `VEIL_JWT_SECRET` in `veil-cloud/.env` (create it from
-`.env.example` if needed), then start PostgreSQL and the Cloud API:
+Configure a random `VEIL_JWT_SECRET` in `veil-cloud/.env` and set
+`CLOUDFLARED_TUNNEL_TOKEN` in the root `.env` to the tunnel token from the
+Cloudflare dashboard. Create either file from its `.env.example` if needed.
+Keep both real values private. The Cloudflared container connects to the
+`cloud` service; configure the dashboard's tunnel origin as
+`http://cloud:8089`.
 
 ```bash
+cp -n .env.example .env
 cp -n veil-cloud/.env.example veil-cloud/.env
-# Edit veil-cloud/.env and replace the example JWT secret.
+# Edit both env files and replace the placeholders with real values.
 docker compose up --build
 ```
 

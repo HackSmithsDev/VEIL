@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     )
 
     environment: str = "development"
+    host: str = "127.0.0.1"
+    port: int = Field(default=8089, gt=0, le=65535)
+    debug: bool = False
     database_url: str = "postgresql+psycopg://veil:veil@localhost:5432/veil"
     redis_url: str = Field(default="redis://localhost:6379/0", min_length=1)
     jwt_secret: SecretStr = Field(min_length=32)
