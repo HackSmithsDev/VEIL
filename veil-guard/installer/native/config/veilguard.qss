@@ -1,40 +1,67 @@
+/* Base typography and widget styling */
 QWidget {
     color: #29283d;
-    font-family: "Avenir Next", "Segoe UI", sans-serif;
-    font-size: 10pt;
+    font-family: -apple-system, "SF Pro Text", "Avenir Next", "Helvetica Neue", sans-serif;
+    font-size: 14pt;
 }
 
-QWizard {
+QWizard, QWizardPage {
     background: #ffffff;
 }
 
-QWizardPage {
-    background: #ffffff;
-}
-
+/* Page titles and subheadings */
 QLabel#TitleLabel {
-    color: #29283d;
-    font-size: 19pt;
+    color: #1e1d2e;
+    font-size: 21pt;
     font-weight: 700;
+    margin-bottom: 6px;
 }
 
 QLabel#SubTitleLabel {
-    color: #747688;
-    font-size: 10pt;
+    color: #636577;
+    font-size: 12pt;
+    line-height: 1.4;
+    margin-bottom: 12px;
 }
 
+/* Step sidebar (WizardShowPageList) */
+QListView, QListWidget#PageListWidget {
+    min-width: 170px;
+    max-width: 190px;
+    background: #f8f8fc;
+    border: none;
+    border-right: 1px solid #ebebf2;
+    padding: 12px 6px;
+    font-size: 12pt;
+    color: #747688;
+}
+
+QListView::item {
+    min-height: 28px;
+    padding: 6px 10px;
+    border-radius: 4px;
+}
+
+QListView::item:selected {
+    color: #4338ca;
+    font-weight: 600;
+    background: #edeaff;
+}
+
+/* Push buttons */
 QPushButton {
-    min-width: 84px;
+    min-width: 86px;
     min-height: 30px;
-    padding: 3px 14px;
-    border: 1px solid #dedde9;
+    padding: 4px 14px;
+    border: 1px solid #d4d3e2;
     border-radius: 5px;
-    color: #514b79;
+    font-size: 13pt;
+    color: #4b4573;
     background: #ffffff;
 }
 
 QPushButton:hover {
-    border-color: #8c80e7;
+    border-color: #7c6ee6;
     background: #f7f6ff;
 }
 
@@ -42,38 +69,46 @@ QPushButton:default {
     border-color: #6557d2;
     color: #ffffff;
     background: #6557d2;
+    font-weight: 600;
 }
 
 QPushButton:default:hover {
-    background: #5144ba;
+    background: #5345c2;
+    border-color: #5345c2;
 }
 
 QPushButton:disabled {
     color: #a5a5b0;
     background: #f4f4f7;
+    border-color: #e5e5eb;
 }
 
+/* Inputs and checkboxes */
 QCheckBox, QRadioButton {
     spacing: 8px;
+    font-size: 12pt;
 }
 
 QLineEdit {
-    min-height: 26px;
-    padding: 3px 8px;
-    border: 1px solid #dedde9;
-    border-radius: 4px;
+    min-height: 28px;
+    padding: 4px 10px;
+    border: 1px solid #d4d3e2;
+    border-radius: 5px;
+    font-size: 12pt;
     selection-background-color: #6557d2;
 }
 
 QLineEdit:focus {
-    border-color: #8c80e7;
+    border-color: #6557d2;
 }
 
+/* Progress bar */
 QProgressBar {
     min-height: 10px;
+    max-height: 10px;
     border: 0;
     border-radius: 5px;
-    background: #efeff5;
+    background: #ebebf2;
     text-align: center;
 }
 
