@@ -1,0 +1,47 @@
+services:
+  database:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: veil
+      POSTGRES_USER: veil
+      POSTGRES_PASSWORD: veil
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U veil -d veil"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5432:5432"
+    volumes:
+      - veil-postgres-data:/var/lib/postgresql/data
+
+  cache:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  cloud:
+    build:
+      context: ./veil-cloud
+    env_file:
+      - ./veil-cloud/.env
+    environment:
+      VEIL_REDIS_URL: redis://cache:6379/0
+      VEIL_DATABASE_URL: postgresql+psycopg://veil:veil@database:5432/veil
+    depends_on:
+      database:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+    ports:
+      - "8089:8089"
+    command:
+      - sh
+      - -c
+      - alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8089
+
+volumes:
+  veil-postgres-data:

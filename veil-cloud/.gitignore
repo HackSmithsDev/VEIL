@@ -5,6 +5,9 @@
 *.py[cod]
 *$py.class
 *.so
+*.db
+*.sqlite
+.pytest_cache/
 .venv/
 venv/
 env/

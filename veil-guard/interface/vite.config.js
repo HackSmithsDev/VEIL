@@ -17,9 +17,5 @@ export default defineConfig({
     host: "127.0.0.1",
     port: 5176,
     strictPort: true,
-    allowedHosts: [
-      "veil.hacksmiths.dev",
-      ".hacksmiths.dev", // Allows any subdomain under hacksmiths.dev
-    ],
   },
 });

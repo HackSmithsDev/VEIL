@@ -1,360 +1,110 @@
-# VEIL Guard Engine
+# VEIL
 
-The **VEIL Guard Engine** is the background security and confidential-processing runtime powering **VEIL Guard**.
+VEIL is a desktop product with a cloud account service. The desktop interface is
+built with React and packaged with Tauri; the cloud service is a separate
+FastAPI application.
 
-It is responsible for enforcing VEIL's security policies, managing protected processing sessions, controlling isolated execution environments, coordinating local AI processing, protecting sensitive data, and monitoring the runtime lifecycle.
-
-The Engine is designed to operate independently of the VEIL Guard Interface so that security enforcement does not depend on the desktop application's window remaining open.
-
----
-
-## Architecture
-
-The Engine is structured as a modular Python package with clearly separated architectural domains.
+## Components
 
 ```text
-engine/
-│
-├── builds/
-│   └── veil_guard_engine/
-│       └── ...
-│
-├── scripts/
-│   ├── build.py
-│   ├── clean.py
-│   └── package.py
-│
-├── tests/
-│
-├── main.py
-├── pyproject.toml
-├── requirements.txt
-└── README.md
+┌────────────────────────────────┐          ┌───────────────────────────────┐
+│ VEIL Guard desktop application │  HTTPS   │ VEIL Cloud                    │
+│                                ├─────────►│ FastAPI                       │
+│ React UI + Tauri host          │          │ Accounts, profiles, programs, │
+│                                │          │ feedback                      │
+└───────────────┬────────────────┘          └───────────────────────────────┘
+                │
+                │ local interface (later phase)
+                ▼
+┌────────────────────────────────┐
+│ VEIL Guard Engine               │
+│ Local protected processing      │
+└────────────────────────────────┘
 ```
 
-`veil_guard_engine/` is the actual Python package.
+The cloud service stores account/profile details, non-confidential program
+metadata used for future AI-upgrade features, and user feedback. It is not the
+confidential processing engine. Source code, prompts, model responses, and
+session secrets are out of scope for this initial cloud feature set.
 
-The `builds/` layer provides the deliberate packaging boundary for the Engine, while `scripts/` contains tooling used to build, clean, and package it.
+The Engine is a separate local-runtime project. Its security, sandbox, DLP, and
+local-AI workflows are not prerequisites for building the initial account,
+program-metadata, and feedback experience.
 
-The internal package architecture will be organized into broader security-runtime domains rather than maintaining a flat collection of independent modules.
+## Initial delivery scope
 
----
+The first vertical slice is the desktop UI plus cloud API:
 
-## Role in VEIL Guard
+- Sign up, sign in, sign out, and view/update the signed-in user's profile.
+- Create, list, view, update, and delete a user's program metadata.
+- Submit and view feedback associated with the signed-in user.
+- Show loading, empty, validation, success, and recoverable error states.
+- Keep each user's records scoped to that user on the server.
+
+The initial program record is metadata only: name, version, platform, and an
+optional short purpose. Do not accept or upload source code as part of this
+slice.
+
+## UI outline
+
+1. **Authentication** — sign-in and account-creation screens.
+2. **Dashboard** — a concise welcome, program and feedback counts, and clear
+   links to the main actions.
+3. **Programs** — searchable/list view and add/edit details form. Treat these
+   as metadata records, not protected source-code workspaces.
+4. **Profile** — view and edit basic account details.
+5. **Feedback** — category and message; warn users
+   not to include passwords, source code, prompts, or other secrets.
+6. **Settings** — account details and application version; avoid implying
+   local Engine security controls are active until implemented.
+
+## Boundaries and data flow
+
+- **Interface** owns presentation, input validation for usability, and calls to
+  the cloud API. Server-side validation remains authoritative.
+- **Cloud** owns authentication, authorization, validation, persistence, and
+  user-scoped access to profile, program, and feedback records.
+- **Engine** will own future local confidential processing. It must not be
+  represented as implemented merely because its directory exists.
+- Tauri packages the desktop interface as a platform application. The cloud
+  backend is deployed separately and is not bundled into that desktop app.
+
+Never store plaintext passwords. Do not log credentials, access tokens, or
+submitted feedback bodies. Keep secrets out of source control and use
+environment-based configuration for local development and deployment.
+
+## Repository layout
 
 ```text
-                    VEIL GUARD
-                         │
-              ┌──────────┴──────────┐
-              │                     │
-          Interface               Engine
-       React + Tauri              Python
-              │                     │
-              └──────────┬──────────┘
-                         │
-                  Local communication
-                         │
-                    VEIL Engine
-                         │
-       ┌─────────────────┼─────────────────┐
-       │                 │                 │
-    Security           Policy          Protection
-       │                 │                 │
-       └─────────────────┼─────────────────┘
-                         │
-                 Protected Runtime
-                         │
-              ┌──────────┴──────────┐
-              │                     │
-           Sandbox                 AI
-           Docker               Ollama
+veil-cloud/                 FastAPI cloud service and Alembic migrations
+veil-guard/
+  interface/                React UI and Tauri desktop host
+  engine/                   Separate local security/runtime project
+docker-compose.yml          Local PostgreSQL + cloud API development stack
 ```
 
-The Interface provides the user-facing control surface.
+Each component has its own README with its responsibilities and development
+entry points. The first account/program/feedback slice is now implemented; the
+Engine remains unimplemented and is intentionally out of scope.
 
-The Engine performs the actual security operations and runtime enforcement.
+## Run locally
 
----
-
-## Core Responsibilities
-
-The Engine will provide the runtime foundation for:
-
-* Security enforcement
-* Policy evaluation
-* Sensitive-data protection and DLP
-* Protected processing sessions
-* Ephemeral Docker-based sandboxing
-* Local AI/LLM processing through Ollama
-* Cryptographic operations and session-key management
-* Secure startup and shutdown
-* Cleanup and session destruction
-* System and Engine monitoring
-* Security and lifecycle event generation
-
-The Engine is intended to minimize persistent copies of confidential data through controlled, session-scoped processing.
-
----
-
-## Local-First Processing
-
-VEIL Guard follows a **local-first architecture** for confidential AI workloads.
-
-```text
-User
-  │
-  ▼
-VEIL Guard
-  │
-  ▼
-VEIL Engine
-  │
-  ├── DLP
-  ├── Policy
-  ├── Session
-  ├── Sandbox
-  └── Security
-          │
-          ▼
-      Local AI Runtime
-          │
-        Ollama
-          │
-          ▼
-      Local LLM
-```
-
-Confidential workloads are intended to remain on the user's machine rather than being sent to a third-party AI provider by default.
-
-VEIL does not claim to control retention or deletion policies of external services when data is intentionally sent outside the protected local environment.
-
----
-
-## Protected Session Lifecycle
-
-A protected session follows a controlled lifecycle:
-
-```text
-Start Session
-      │
-      ▼
-Create Session
-      │
-      ▼
-Generate Session Key
-      │
-      ▼
-Load Policy
-      │
-      ▼
-Create Sandbox
-      │
-      ▼
-Input DLP
-      │
-      ▼
-Policy Evaluation
-      │
-   ┌──┴──┐
- BLOCK  ALLOW
-          │
-          ▼
-      Local AI
-          │
-          ▼
-      Output DLP
-          │
-      ┌───┴───┐
-    BLOCK   RELEASE
-              │
-              ▼
-         Close Session
-              │
-              ▼
-        Destroy Sandbox
-              │
-              ▼
-      Destroy Session Key
-              │
-              ▼
-         Audit Event
-```
-
-The lifecycle is designed around ephemeral processing and controlled cleanup rather than relying on a single deletion mechanism.
-
----
-
-## Security Model
-
-VEIL Guard's security model is based on multiple complementary controls:
-
-* Process and system monitoring
-* Explicit security policies
-* Data-loss prevention
-* Restricted execution environments
-* Ephemeral sandboxing
-* Encryption and session-scoped keys
-* Controlled resource and network access
-* Lifecycle-based cleanup
-* Tamper-evident audit records
-
-Docker provides an isolation boundary for protected workloads but is not treated as an absolute security guarantee. The Engine must explicitly control mounts, networking, permissions, resources, and lifecycle behavior.
-
----
-
-## Technology Stack
-
-| Component               | Technology                              |
-| ----------------------- | --------------------------------------- |
-| Engine                  | Python                                  |
-| AI Runtime              | Ollama                                  |
-| AI Models               | Local LLMs                              |
-| Sandbox                 | Docker                                  |
-| DLP                     | Microsoft Presidio + custom recognizers |
-| Cryptography            | Python cryptographic tooling            |
-| Desktop Interface       | React + Vite                            |
-| Desktop Runtime         | Tauri                                   |
-| Cloud Control Plane     | FastAPI                                 |
-| Database                | PostgreSQL                              |
-| ORM / Migrations        | SQLAlchemy + Alembic                    |
-| Cache / Runtime Support | Redis                                   |
-| Verification Layer      | Polygon / blockchain                    |
-
-The Engine remains independent from the cloud control plane and desktop interface.
-
----
-
-## Engine and VEIL Cloud
-
-VEIL Cloud provides control-plane capabilities such as:
-
-* Authentication
-* Account management
-* Configuration and policy synchronization
-* Security notifications
-* Application metadata
-* Audit and verification records
-* Blockchain/ledger integration
-
-Confidential plaintext, raw prompts, raw model responses, session keys, passwords, and other sensitive processing material should not be persisted in the cloud database.
-
----
-
-## Development
-
-### Requirements
-
-* Python
-* Docker
-* Ollama
-* Git
-
-Additional development dependencies are defined in:
-
-```text
-requirements.txt
-```
-
-Project and packaging configuration is defined in:
-
-```text
-pyproject.toml
-```
-
-### Running the Engine
-
-The Engine entry point is currently:
+Configure a random `VEIL_JWT_SECRET` in `veil-cloud/.env` (create it from
+`.env.example` if needed), then start PostgreSQL and the Cloud API:
 
 ```bash
-python main.py
+cp -n veil-cloud/.env.example veil-cloud/.env
+# Edit veil-cloud/.env and replace the example JWT secret.
+docker compose up --build
 ```
 
-The exact runtime interface and local communication mechanism between the Engine and VEIL Guard Interface will be defined as the Engine implementation progresses.
+In another terminal, start the desktop application:
 
----
-
-## Project Structure
-
-```text
-engine/
-│
-├── builds/
-│   └── veil_guard_engine/
-│
-├── scripts/
-│   ├── build.py
-│   ├── clean.py
-│   └── package.py
-│
-├── tests/
-│
-├── .gitignore
-├── main.py
-├── pyproject.toml
-├── requirements.txt
-└── README.md
+```bash
+cd veil-guard/interface
+npm install
+npx tauri dev
 ```
 
-The internal package structure is intentionally being developed in stages. Architectural domains will be established before individual modules and files are finalized.
-
----
-
-## Packaging
-
-The Engine uses a deliberate three-level package boundary:
-
-```text
-engine/
-    │
-    └── builds/
-          │
-          └── veil_guard_engine/
-```
-
-This structure separates:
-
-1. The Engine project root
-2. The Engine build/package boundary
-3. The actual Python package
-
-The Engine package can subsequently be built, tested, and incorporated into the complete **VEIL Guard package** and Windows distribution.
-
----
-
-## Design Principles
-
-VEIL Guard Engine is being developed around the following principles:
-
-* **Local-first** — confidential processing should remain local whenever possible.
-* **Least privilege** — components receive only the access they require.
-* **Ephemeral processing** — sensitive workloads should have controlled lifecycles.
-* **Policy-driven security** — actions are governed by explicit policies.
-* **Defense in depth** — isolation, DLP, cryptography, monitoring, and policy enforcement complement one another.
-* **Separation of concerns** — Interface, Engine, and Cloud remain distinct systems.
-* **Auditable lifecycle** — important security events can be recorded and verified.
-* **No plaintext on-chain** — blockchain is used for verification metadata, never confidential content.
-* **Explicit guarantees** — VEIL avoids claiming deletion or forensic guarantees it cannot technically prove.
-
----
-
-## Status
-
-**Development — Architecture Phase**
-
-The outer Engine architecture and packaging model are established. Internal security-runtime domains and their implementations are being developed incrementally.
-
----
-
-## Part of VEIL
-
-```text
-VEIL
-│
-├── VEIL Guard
-│   ├── Interface
-│   └── Engine
-│
-└── VEIL Cloud
-```
-
-**VEIL Guard Engine** is the security runtime at the core of VEIL Guard.
+Tauri builds a native bundle for the build host. Producing a Windows executable
+requires a Windows build environment or a suitable Windows CI runner.
