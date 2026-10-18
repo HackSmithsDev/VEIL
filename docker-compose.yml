@@ -1,6 +1,7 @@
 services:
   database:
     image: postgres:17-alpine
+    container_name: veil_database
     environment:
       POSTGRES_DB: veil
       POSTGRES_USER: veil
@@ -14,18 +15,24 @@ services:
       - "5432:5432"
     volumes:
       - veil-postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
 
   cache:
     image: redis:7-alpine
+    container_name: veil_cache
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 10
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
 
   cloud:
     build:
       context: ./veil-cloud
+    container_name: veil_cloud
     env_file:
       - ./veil-cloud/.env
     environment:
@@ -40,17 +47,17 @@ services:
         condition: service_healthy
     ports:
       - "8089:8089"
-    command:
-      - sh
-      - -c
-      - alembic upgrade head && uvicorn app:app --host "$$VEIL_HOST" --port "$$VEIL_PORT"
+    command: >
+      sh -c "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8089"
+    restart: unless-stopped
 
   cloudflared:
     image: cloudflare/cloudflared:latest
+    container_name: veil_tunnel
     restart: unless-stopped
     environment:
       TUNNEL_TOKEN: ${CLOUDFLARED_TUNNEL_TOKEN:?Set CLOUDFLARED_TUNNEL_TOKEN in the root .env file}
-    command: tunnel --no-autoupdate run --token $$TUNNEL_TOKEN
+    command: tunnel --no-autoupdate run
     depends_on:
       - cloud
 

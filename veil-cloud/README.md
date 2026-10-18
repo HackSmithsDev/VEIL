@@ -72,13 +72,11 @@ Settings use the `VEIL_` prefix. Important groups:
   TLS enabled
 - `VEIL_FEEDBACK_NOTIFICATION_EMAIL` for an optional team notification
 
-Password-reset email requires SMTP and Redis. **Known configuration gap:**
-the reset handlers currently read `password_reset_request_window_seconds`,
-`password_reset_email_request_limit`, `password_reset_host_request_limit`,
-and `password_reset_token_minutes` from `Settings`, but those fields are not
-declared in `app/core/config.py`. The tests supply these values through mocks,
-so reset behavior is not verified against normal application settings yet.
-Declare and validate these settings before relying on password recovery.
+Password-reset email requires SMTP and Redis. Reset token expiry and request
+rate limits are configured through `VEIL_PASSWORD_RESET_TOKEN_MINUTES`,
+`VEIL_PASSWORD_RESET_EMAIL_REQUEST_LIMIT`,
+`VEIL_PASSWORD_RESET_HOST_REQUEST_LIMIT`, and
+`VEIL_PASSWORD_RESET_REQUEST_WINDOW_SECONDS`.
 
 ## Run locally
 

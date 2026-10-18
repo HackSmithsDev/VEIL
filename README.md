@@ -81,9 +81,8 @@ starting. API documentation is at `http://127.0.0.1:8089/docs`, and readiness
 is exposed at `/api/v1/health`. The named-service command deliberately leaves
 the Cloudflare Tunnel out of local development. To run that optional tunnel,
 configure its token in the root `.env` using [.env.example](./.env.example).
-The current Compose file's tunnel command interpolates `TUNNEL_TOKEN`, while
-the root template supplies `CLOUDFLARED_TUNNEL_TOKEN`; reconcile those names
-before starting the tunnel.
+Compose passes it to the `cloudflared` container as `TUNNEL_TOKEN`, which the
+container uses to run the tunnel.
 
 To run the API directly on the host instead, start only its dependencies and
 run the Cloud instructions in [veil-cloud/README.md](./veil-cloud/README.md).
