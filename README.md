@@ -1,117 +1,96 @@
 # VEIL
 
-VEIL Guard is a desktop utility with a separate local Engine, native installer,
-and optional Cloud account features. The utility is built with React and
-packaged with Tauri; VEIL Cloud is a separate FastAPI application.
+VEIL is a local-first desktop security project with an optional cloud account
+service. It is split into separately developed components: a React/Tauri
+desktop interface, a Python Engine, a macOS installer, and the FastAPI Cloud
+service.
 
-## Components
+> **Current protection status:** the desktop app, Cloud account/metadata
+> features, and macOS installer are usable at their documented scope. The
+> Engine is currently a Python library scaffold with contracts, an
+> experimental credential-pattern policy, and routing tests. It does not
+> capture prompts from other applications, connect to Ollama, or run as a
+> background service. VEIL Guard does **not** currently inspect prompts or
+> prevent credential leaks.
 
-```text
-┌────────────────────────────────┐          ┌───────────────────────────────┐
-│ VEIL Guard desktop utility     │  HTTPS   │ VEIL Cloud (optional features)│
-│                                ├─────────►│ FastAPI                       │
-│ React UI + Tauri host          │          │ Accounts, profiles, programs, │
-│                                │          │ feedback                      │
-└───────────────┬────────────────┘          └───────────────────────────────┘
-                │
-                │ authenticated local IPC (future)
-                ▼
-┌────────────────────────────────┐
-│ VEIL Guard Engine               │
-│ Local protected processing      │
-└────────────────────────────────┘
-```
-
-The cloud service stores account/profile details, non-confidential program
-metadata used for future AI-upgrade features, and user feedback. It is not the
-confidential processing engine. Source code, prompts, model responses, and
-session secrets are out of scope for this initial cloud feature set.
-
-The Engine handles future local prompt assessment and processing. The separate
-platform installer sets up the utility and Engine; it does not require Cloud
-sign-in. The installed utility should manage protection locally, while sign-in
-is optional for Cloud profile, program metadata, and feedback features.
-
-## Initial delivery scope
-
-The Cloud-backed features are:
-
-- Sign up, sign in, sign out, and view/update the signed-in user's profile.
-- Create, list, view, update, and delete a user's program metadata.
-- Submit and view feedback associated with the signed-in user.
-- Show loading, empty, validation, success, and recoverable error states.
-- Keep each user's records scoped to that user on the server.
-
-The initial program record is metadata only: name, version, platform, and an
-optional short purpose. Do not accept or upload source code as part of this
-slice.
-
-## UI outline
-
-1. **Protection** — local Engine/connector readiness and protection status;
-   this must be usable without a Cloud account.
-2. **Setup** — installer status, optional local processing, and connectors.
-3. **Programs** — searchable/list view and add/edit details form. Treat these
-   as optional Cloud metadata records, not protected source-code workspaces.
-4. **Account** — optional sign-in and profile management for Cloud features.
-5. **Feedback** — optional Cloud feature; warn users
-   not to include passwords, source code, prompts, or other secrets.
-6. **Settings** — account details and application version; avoid implying
-   local Engine security controls are active until implemented.
-
-## Boundaries and data flow
-
-- **Interface** owns presentation, input validation for usability, and calls to
-  the cloud API. Server-side validation remains authoritative.
-- **Cloud** owns authentication, authorization, validation, persistence, and
-  user-scoped access to profile, program, and feedback records.
-- **Engine** will own future local confidential processing. It must not be
-  represented as implemented merely because its directory exists.
-- **Installer** owns platform-specific installation, background service setup,
-  consent, upgrades, repair, and uninstall. It must not depend on VEIL Cloud.
-- Tauri packages the desktop interface as a platform application. The cloud
-  backend is deployed separately and is not bundled into that desktop app.
-
-Never store plaintext passwords. Do not log credentials, access tokens, or
-submitted feedback bodies. Keep secrets out of source control and use
-environment-based configuration for local development and deployment.
-
-## Repository layout
+## Project layout
 
 ```text
-veil-cloud/                 FastAPI cloud service and Alembic migrations
-veil-guard/
-  interface/                React UI and Tauri desktop host
-  engine/                   Separate local security/runtime project
-  installer/                Separate Windows, macOS, and Linux installer work
-docker-compose.yml          Local PostgreSQL + cloud API development stack
+.
+├── veil-cloud/             FastAPI API, PostgreSQL models/migrations, Redis use
+├── veil-guard/
+│   ├── interface/          React frontend and Tauri desktop application
+│   ├── engine/             Local policy/routing library and its tests
+│   └── installer/          Qt Installer Framework macOS package
+├── docker-compose.yml      Local PostgreSQL, Redis, Cloud API, optional tunnel
+└── .env.example            Root Cloudflare Tunnel token template
 ```
 
-Each component has its own README with responsibilities and status. The
-Cloud-backed account/program/feedback slice is implemented. The macOS Qt
-Installer Framework project stages the desktop app for packaging, but the
-framework build tool is not installed and no installer binary has been
-generated. The Engine runtime and Windows/Linux installers are not ready, so
-VEIL Guard does not provide active prompt protection yet.
+Each component README describes its boundaries, setup, tests, and incomplete
+work: [Cloud](./veil-cloud/README.md),
+[Interface](./veil-guard/interface/README.md),
+[Engine](./veil-guard/engine/README.md), and
+[Installer](./veil-guard/installer/README.md).
 
-## Run locally
+## Architecture and data boundaries
 
-Configure a random `VEIL_JWT_SECRET` in `veil-cloud/.env` and set
-`CLOUDFLARED_TUNNEL_TOKEN` in the root `.env` to the tunnel token from the
-Cloudflare dashboard. Create either file from its `.env.example` if needed.
-Keep both real values private. The Cloudflared container uses the checked-in,
-non-secret `cloudflared/config.yml` ingress mapping to route
-`veil-api.hacksmiths.dev` to the `cloud` service on port 8089. Never put the
-tunnel token in that config file or commit it.
+```text
+React + Tauri desktop app ── HTTPS ──► VEIL Cloud API
+           │                              │
+           │ future authenticated IPC     ├── PostgreSQL: accounts, program
+           ▼                              │   metadata, feedback
+    VEIL Guard Engine                     └── Redis: expiring/runtime state
+    (not integrated yet)
+```
+
+- **Interface** presents the desktop UI, stores local Ollama preferences, and
+  calls Cloud endpoints for account, profile, program metadata, and feedback.
+- **Cloud** authenticates users and owns server-side validation, user-scoped
+  authorization, persistence, and optional email delivery. It must not receive
+  confidential prompts, source code, local model responses, or Engine session
+  secrets.
+- **Engine** is intended to assess each request locally and route confidential
+  work to a local processor. Its current protocols and experimental pattern
+  policy are not production protection.
+- **Installer** packages the desktop app for macOS only. It does not install an
+  Engine service or enable protection.
+
+Cloud sign-in is optional. The desktop access token is held in memory and is
+discarded when the app exits or the user signs out. Do not persist it in
+`localStorage`. Cloud-owned records remain server-side; uninstalling the
+desktop app does not delete those records.
+
+## Local development
+
+### Start the Cloud API and its dependencies
+
+From the repository root, create `veil-cloud/.env` from its example and replace
+the development JWT secret with a unique random value of at least 32
+characters. The root `.env` and Cloud `.env` contain local credentials and must
+not be committed.
 
 ```bash
-cp -n .env.example .env
 cp -n veil-cloud/.env.example veil-cloud/.env
-# Edit both env files and replace the placeholders with real values.
-docker compose up --build
+# Edit veil-cloud/.env and set a unique VEIL_JWT_SECRET.
+docker compose up --build database cache cloud
 ```
 
-In another terminal, start the desktop application:
+The command starts PostgreSQL, Redis, and the API on
+`http://127.0.0.1:8089`; the Cloud container applies Alembic migrations before
+starting. API documentation is at `http://127.0.0.1:8089/docs`, and readiness
+is exposed at `/api/v1/health`. The named-service command deliberately leaves
+the Cloudflare Tunnel out of local development. To run that optional tunnel,
+configure its token in the root `.env` using [.env.example](./.env.example).
+The current Compose file's tunnel command interpolates `TUNNEL_TOKEN`, while
+the root template supplies `CLOUDFLARED_TUNNEL_TOKEN`; reconcile those names
+before starting the tunnel.
+
+To run the API directly on the host instead, start only its dependencies and
+run the Cloud instructions in [veil-cloud/README.md](./veil-cloud/README.md).
+
+### Start the desktop app
+
+In another terminal:
 
 ```bash
 cd veil-guard/interface
@@ -119,5 +98,55 @@ npm install
 npx tauri dev
 ```
 
-Tauri builds a native bundle for the build host. Producing a Windows executable
-requires a Windows build environment or a suitable Windows CI runner.
+The interface uses `VITE_API_BASE_URL` to locate Cloud. Create or update a local
+`.env.development` from
+[`.env.example`](./veil-guard/interface/.env.example) if the local API URL
+differs from the configured default. Local `.env.development` and
+`.env.production` files are ignored by Git. The normal desktop workflow is
+`npx tauri dev` / `npx tauri build`; building the interface alone does not
+produce the desktop app.
+
+## Tests and builds
+
+Run component checks from each component directory:
+
+```bash
+# Cloud API and Redis behavior
+cd veil-cloud
+python3 -m pip install -r requirements-dev.txt
+pytest
+
+# Interface
+cd ../veil-guard/interface
+npm install
+npm run lint
+npm run build
+
+# Engine
+cd ../engine
+python3 -m pip install -e ".[test]"
+pytest -v
+
+# Installer script tests (standard library)
+cd ../installer
+python3 -m unittest discover -s native/tests -v
+```
+
+Build the desktop app with `npx tauri build` from `veil-guard/interface`.
+Creating the macOS Qt Installer Framework package is a separate operation;
+see the [Installer README](./veil-guard/installer/README.md). Windows and Linux
+desktop/installer packages are not currently configured.
+
+## Security and contributor notes
+
+- Never commit `.env` files, tokens, signing keys, or real credentials. Use the
+  checked-in `.env.example` files only as templates.
+- Keep confidential content local. Do not add prompt bodies, secrets, or model
+  responses to Cloud requests or logs.
+- Server-side authorization is authoritative; client-side visibility is not
+  an access-control boundary.
+- Do not advertise protection as active until a supported connector, policy,
+  local processor, authenticated IPC, and installed Engine report verified
+  readiness.
+- Keep changes within the component that owns the behavior and update that
+  component's README when its setup, contract, or status changes.

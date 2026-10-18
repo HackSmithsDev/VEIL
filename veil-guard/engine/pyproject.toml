@@ -9,5 +9,11 @@ description = "Local processing engine contracts for VEIL Guard"
 requires-python = ">=3.11"
 dependencies = []
 
+[project.optional-dependencies]
+test = ["pytest>=8.0"]
+
 [tool.setuptools.packages.find]
 where = ["libs"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

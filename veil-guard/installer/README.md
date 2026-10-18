@@ -1,53 +1,79 @@
 # VEIL Guard Installer
 
-This folder contains the first native installer target: a branded macOS wizard
-built with Qt Installer Framework. It packages the Tauri VEIL Guard desktop
-app. The Engine is not included because it does not yet have a runnable service
-entry point.
+This component builds the macOS VEIL Guard setup application with Qt Installer
+Framework (Qt IF). It packages the Tauri desktop `.app` bundle; it does not
+include or install the VEIL Engine, an Engine service, Ollama, or app
+connectors. Installing VEIL Guard does not enable prompt protection or require
+a VEIL Cloud account.
 
-The Qt IF finish page offers **Launch VEIL Guard**. Installation does not
-require a VEIL Cloud account. Ollama/model downloads and connector permissions
-are deferred to the installed app and require user consent.
+The wizard installs into the current user's Applications directory and offers
+to launch VEIL Guard when installation finishes. The app's Settings page can
+launch the Qt IF maintenance tool to uninstall the installed application.
+
+## Requirements
+
+- macOS build host
+- Node.js/npm and the Rust/Tauri build prerequisites if the desktop app is to
+  be built by the installer script
+- Qt Installer Framework with `binarycreator` on `PATH`, or its `bin`
+  directory provided through `QTIFW_BIN_DIR`
+
+On Apple Silicon, the official Qt Installer Framework 4.7 binary package is
+Intel-only and may require Rosetta. If installed under `~/Qt`, set:
+
+```bash
+export QTIFW_BIN_DIR="$HOME/Qt/Tools/QtInstallerFramework/4.7/bin"
+```
 
 ## Build
 
-Build on macOS with Qt Installer Framework installed and `binarycreator` on
-`PATH`, or set `QTIFW_BIN_DIR` to its `bin` directory:
+From this directory:
 
 ```bash
 python3 native/scripts/build.py
 ```
 
-On Apple Silicon, the official Qt Installer Framework 4.7 binary package is
-Intel-only and runs through Rosetta. If installed under `~/Qt`, build with:
+The script builds the Tauri app bundle, stages it with the installer
+configuration/package metadata, and runs Qt IF `binarycreator`. The installer
+version is read from `veil-guard/interface/src-tauri/tauri.conf.json`.
+Staging output is under ignored `native/build/`; the setup app is written to
+ignored `native/dist/`.
 
-```bash
-QTIFW_BIN_DIR="$HOME/Qt/Tools/QtInstallerFramework/4.7/bin" \
-  python3 native/scripts/build.py
-```
-
-For a local unsigned test build only:
+For a local unsigned test package:
 
 ```bash
 python3 native/scripts/build.py --allow-unsigned
 ```
 
-To stage and validate the Tauri app payload without Qt IF installed:
+Unsigned output is for local testing only, not distribution. Release
+distribution requires platform-appropriate signing and notarization.
+
+To stage an already-built app bundle without invoking Qt IF:
 
 ```bash
 python3 native/scripts/build.py --skip-app-build --stage-only
 ```
 
-Production distribution requires appropriate code signing and notarization.
-The staged payload is created under ignored `native/build/`; installer output
-goes to ignored `native/dist/`.
+This still requires an existing Tauri app bundle at
+`veil-guard/interface/src-tauri/target/release/bundle/macos/VEIL Guard.app`.
+The `--stage-only` mode checks/stages the payload but does not create a setup
+application.
 
 ## Tests
+
+The script tests use Python's standard library and do not require Qt IF:
 
 ```bash
 python3 -m unittest discover -s native/tests -v
 ```
 
-Only the macOS package target is configured. Windows and Linux packages,
-Engine service installation, upgrade/repair/uninstall, and protection
-activation are not implemented.
+They cover tool discovery, Tauri command construction, payload staging,
+version synchronization, and installer bundle metadata.
+
+## Scope and limitations
+
+Only the macOS Qt IF package target is configured. Windows and Linux
+installers, Engine service installation, Engine/IPC integration,
+upgrade/repair behavior, and active protection are not implemented. See the
+[Interface](../interface/README.md) and [Engine](../engine/README.md)
+documentation for the related project status.

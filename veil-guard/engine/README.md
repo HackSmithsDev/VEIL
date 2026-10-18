@@ -28,23 +28,32 @@ The connector registry accepts only explicitly registered connector IDs; the
 current package does not include a provider connector or application capture
 implementation.
 
+`VeilEngine` receives a confidentiality policy, a local processor, and a
+`ConnectorRegistry`. `process_prompt` resolves the requested connector before
+assessing the prompt. An unregistered connector is rejected; a confidential
+prompt is sent only to the local processor; a non-confidential prompt is sent
+to the registered connector. Policy or local-processing errors propagate and
+never cause a remote fallback. `end_session` delegates cleanup to the local
+processor.
+
 ## Package boundaries
 
 ```text
 libs/veil_guard_engine/
-  connectors/   Explicitly supported app/provider adapter contract and registry
-  core/         Request/result contracts and local-vs-remote orchestration
-  policy/       Confidentiality assessment interface and policy models
-  processing/   Local processor interface (future Ollama implementation)
-  runtime/      Session lifecycle and process supervision boundaries
-  ipc/          Future authenticated local Interface-to-Engine contract
-tests/          Engine routing and lifecycle tests
+  connectors/   Explicitly configured provider connector contract and registry
+  core/         Request/result contracts and policy-driven routing
+  policy/       Local confidentiality assessment interface and policy
+  processing/   Local processor contract
+tests/          Routing, policy, and package-script tests
 ```
 
 Cloud API calls and local Engine calls are separate channels. Prompt contents,
 confidential values, and local model responses must not be sent to VEIL Cloud.
 The Engine should not log prompt/response bodies; diagnostics should use
-minimal, non-sensitive event metadata.
+minimal, non-sensitive event metadata. Provider integrations, application
+capture, process supervision, and authenticated Interface-to-Engine IPC are
+not implemented yet; add their packages when those components have concrete
+contracts and implementations.
 
 ## Process and installation model
 
@@ -70,14 +79,38 @@ is platform/runtime-dependent and must be stated honestly in the UX.
 
 ## Development status
 
-The current scaffold can be exercised with the standard library test runner:
+Install the optional pytest dependency and run the suite from the Engine
+directory:
 
 ```bash
 cd veil-guard/engine
-python3 -m unittest discover -s tests
+python3 -m pip install -e ".[test]"
+pytest -v
+pytest -q
+```
+
+The tests can also be run without pytest:
+
+```bash
+cd veil-guard/engine
+PYTHONPATH=libs:scripts python3 -m unittest discover -s tests
 ```
 
 The package and contracts are not yet a deployable background service. Do not
 expose Engine controls in the desktop UI until a provider connector and app
 capture implementation, production-grade policy and local processor, secure
 IPC, and platform installer have been implemented and reviewed.
+
+## Package scripts
+
+From this directory:
+
+```bash
+python3 scripts/build.py                 # build wheel and source archive
+python3 scripts/build.py --format wheel  # wheel only
+python3 scripts/build.py --format sdist  # source archive only
+python3 scripts/clean.py                # remove known build outputs
+```
+
+Artifacts are written to `dist/`. The clean script only removes the Engine's
+known `build/`, `dist/`, and package metadata outputs.

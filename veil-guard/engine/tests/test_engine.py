@@ -1,17 +1,13 @@
-import sys
 import unittest
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parents[1] / "libs"))
-
-from veil_guard_engine.connectors.registry import ConnectorRegistry  # noqa: E402
-from veil_guard_engine.core.contracts import (  # noqa: E402
+from veil_guard_engine.connectors.registry import ConnectorRegistry
+from veil_guard_engine.core.contracts import (
     PolicyDecision,
     ProcessingRoute,
     RequestContext,
 )
-from veil_guard_engine.core.engine import VeilEngine  # noqa: E402
-from veil_guard_engine.policy.credentials import CredentialPatternPolicy  # noqa: E402
+from veil_guard_engine.core.engine import VeilEngine
+from veil_guard_engine.policy.credentials import CredentialPatternPolicy
 
 
 class FakePolicy:

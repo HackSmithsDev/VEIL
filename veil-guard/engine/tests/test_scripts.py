@@ -1,14 +1,10 @@
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-SCRIPTS_DIR = Path(__file__).parents[1] / "scripts"
-sys.path.insert(0, str(SCRIPTS_DIR))
-
-import clean  # noqa: E402
-import package  # noqa: E402
+import clean
+import package
 
 
 class PackageScriptTests(unittest.TestCase):
