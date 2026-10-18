@@ -2,8 +2,8 @@
 
 The Engine is the planned local runtime for VEIL Guard's confidential
 processing. It is separate from the desktop Interface and VEIL Cloud. The
-current package contains the processing contracts, routing skeleton, and an
-experimental credential-pattern policy. It does not monitor applications,
+current package contains processing contracts, policy-driven request routing,
+and an experimental credential-pattern policy. It does not monitor applications,
 provide comprehensive confidential-content detection, run Ollama, or install a
 background service.
 
@@ -24,12 +24,15 @@ secrets or produce false positives; it is not sufficient to claim production
 credential-leak prevention. There is no Ollama integration. Policy errors must
 not silently fall back to forwarding a prompt. A future connector must document
 its supported app, capture mechanism, response rendering, and failure behavior.
+The connector registry accepts only explicitly registered connector IDs; the
+current package does not include a provider connector or application capture
+implementation.
 
 ## Package boundaries
 
 ```text
 libs/veil_guard_engine/
-  connectors/   Explicitly supported app/provider adapters and registry
+  connectors/   Explicitly supported app/provider adapter contract and registry
   core/         Request/result contracts and local-vs-remote orchestration
   policy/       Confidentiality assessment interface and policy models
   processing/   Local processor interface (future Ollama implementation)
@@ -70,10 +73,11 @@ is platform/runtime-dependent and must be stated honestly in the UX.
 The current scaffold can be exercised with the standard library test runner:
 
 ```bash
+cd veil-guard/engine
 python3 -m unittest discover -s tests
 ```
 
 The package and contracts are not yet a deployable background service. Do not
-expose Engine controls in the desktop UI until a connector, policy
-implementation, local processor, IPC security model, and platform installer
-have been implemented and reviewed.
+expose Engine controls in the desktop UI until a provider connector and app
+capture implementation, production-grade policy and local processor, secure
+IPC, and platform installer have been implemented and reviewed.

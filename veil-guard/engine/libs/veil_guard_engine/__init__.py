@@ -1,3 +1,4 @@
+from veil_guard_engine.connectors.registry import ConnectorRegistry
 from veil_guard_engine.core.contracts import (
     PolicyDecision,
     ProcessingResult,
@@ -12,6 +13,7 @@ __all__ = [
     "ProcessingResult",
     "ProcessingRoute",
     "RequestContext",
+    "ConnectorRegistry",
     "CredentialPatternPolicy",
     "VeilEngine",
 ]

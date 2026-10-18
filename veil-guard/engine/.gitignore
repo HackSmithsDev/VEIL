@@ -5,7 +5,10 @@
 
 # Test and coverage output
 .pytest_cache/
+.tox/
+.nox/
 .coverage
+.coverage.*
 htmlcov/
 
 # Python package and build output
@@ -13,3 +16,7 @@ htmlcov/
 /dist/
 /*.egg-info/
 /libs/*.egg-info/
+.mypy_cache/
+.pyre/
+.ruff_cache/
+.venv/

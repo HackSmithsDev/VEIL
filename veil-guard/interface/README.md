@@ -76,13 +76,15 @@ npm install
 npm run dev
 ```
 
-Vite's checked-in `.env.development` and `.env.production` files configure the
-development and production API base URLs. Override `VITE_API_BASE_URL` in the
-build environment when targeting another service; the app rejects missing,
-malformed, or non-HTTPS remote endpoints. The normal desktop workflow is
-`npx tauri dev` or `npx tauri build`. Both commands run Vite automatically: development serves
-the UI to Tauri's WebView locally, and the production build embeds the generated
-assets into the desktop bundle. No separate website is deployed.
+Copy `.env.example` to `.env.development` and configure the development API
+base URL before running the app. For production builds, set
+`VITE_API_BASE_URL` in the build environment or configure a local
+`.env.production` file. These local environment files are ignored by Git. The
+app rejects missing, malformed, or non-HTTPS remote endpoints. The normal
+desktop workflow is `npx tauri dev` or `npx tauri build`. Both commands run
+Vite automatically: development serves the UI to Tauri's WebView locally, and
+the production build embeds the generated assets into the desktop bundle. No
+separate website is deployed.
 `npm run build` alone only checks/builds the frontend assets and does not create
 the desktop app.
 

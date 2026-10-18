@@ -1,4 +1,5 @@
 from veil_guard_engine.connectors.base import Connector
+from veil_guard_engine.connectors.registry import ConnectorRegistry
 from veil_guard_engine.core.contracts import (
     PolicyDecision,
     ProcessingResult,
@@ -14,18 +15,18 @@ class VeilEngine:
         self,
         policy: ConfidentialityPolicy,
         local_processor: LocalProcessor,
+        connectors: ConnectorRegistry,
     ) -> None:
         self._policy = policy
         self._local_processor = local_processor
+        self._connectors = connectors
 
     async def process_prompt(
         self,
         prompt: str,
         context: RequestContext,
-        connector: Connector,
     ) -> ProcessingResult:
-        if connector.connector_id != context.connector_id:
-            raise ValueError("Connector does not match request context")
+        connector: Connector = self._connectors.get(context.connector_id)
 
         decision: PolicyDecision = await self._policy.assess(prompt, context)
         if decision.confidential:

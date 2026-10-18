@@ -4,6 +4,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "libs"))
 
+from veil_guard_engine.connectors.registry import ConnectorRegistry  # noqa: E402
 from veil_guard_engine.core.contracts import (  # noqa: E402
     PolicyDecision,
     ProcessingRoute,
@@ -16,8 +17,10 @@ from veil_guard_engine.policy.credentials import CredentialPatternPolicy  # noqa
 class FakePolicy:
     def __init__(self, decision: PolicyDecision) -> None:
         self.decision = decision
+        self.assessed: list[str] = []
 
     async def assess(self, prompt: str, context: RequestContext) -> PolicyDecision:
+        self.assessed.append(prompt)
         return self.decision
 
 
@@ -58,6 +61,14 @@ class FakeLocalProcessor:
         self.ended_sessions.append(context.session_id)
 
 
+def create_engine(
+    policy: FakePolicy | RaisingPolicy | CredentialPatternPolicy,
+    local: FakeLocalProcessor,
+    *connectors: FakeConnector,
+) -> VeilEngine:
+    return VeilEngine(policy, local, ConnectorRegistry(connectors))
+
+
 class RaisingLocalProcessor(FakeLocalProcessor):
     async def process_locally(
         self,
@@ -71,13 +82,14 @@ class EngineRoutingTests(unittest.IsolatedAsyncioTestCase):
     async def test_confidential_prompt_never_reaches_connector(self) -> None:
         connector = FakeConnector()
         local = FakeLocalProcessor()
-        engine = VeilEngine(
+        engine = create_engine(
             FakePolicy(PolicyDecision(confidential=True, reason_codes=("secret",))),
             local,
+            connector,
         )
         context = RequestContext(connector_id="test", session_id="session-1")
 
-        result = await engine.process_prompt("sensitive prompt", context, connector)
+        result = await engine.process_prompt("sensitive prompt", context)
 
         self.assertEqual(result.route, ProcessingRoute.LOCAL)
         self.assertEqual(result.response, "local response")
@@ -88,10 +100,14 @@ class EngineRoutingTests(unittest.IsolatedAsyncioTestCase):
     async def test_non_confidential_prompt_uses_connector(self) -> None:
         connector = FakeConnector()
         local = FakeLocalProcessor()
-        engine = VeilEngine(FakePolicy(PolicyDecision(confidential=False)), local)
+        engine = create_engine(
+            FakePolicy(PolicyDecision(confidential=False)),
+            local,
+            connector,
+        )
         context = RequestContext(connector_id="test", session_id="session-1")
 
-        result = await engine.process_prompt("ordinary prompt", context, connector)
+        result = await engine.process_prompt("ordinary prompt", context)
 
         self.assertEqual(result.route, ProcessingRoute.REMOTE)
         self.assertEqual(result.response, "remote response")
@@ -101,7 +117,11 @@ class EngineRoutingTests(unittest.IsolatedAsyncioTestCase):
     async def test_session_end_is_forwarded_to_local_processor(self) -> None:
         connector = FakeConnector()
         local = FakeLocalProcessor()
-        engine = VeilEngine(FakePolicy(PolicyDecision(confidential=True)), local)
+        engine = create_engine(
+            FakePolicy(PolicyDecision(confidential=True)),
+            local,
+            connector,
+        )
         context = RequestContext(connector_id="test", session_id="session-2")
 
         await engine.end_session(context)
@@ -154,49 +174,65 @@ class EngineRoutingTests(unittest.IsolatedAsyncioTestCase):
     async def test_detected_credential_prompt_routes_only_to_local_processor(self) -> None:
         connector = FakeConnector()
         local = FakeLocalProcessor()
-        engine = VeilEngine(CredentialPatternPolicy(), local)
+        engine = create_engine(CredentialPatternPolicy(), local, connector)
         context = RequestContext(connector_id="test", session_id="session-5")
         prompt = "My password: example-password-value"
 
-        result = await engine.process_prompt(prompt, context, connector)
+        result = await engine.process_prompt(prompt, context)
 
         self.assertEqual(result.route, ProcessingRoute.LOCAL)
         self.assertEqual(local.processed, [prompt])
         self.assertEqual(connector.forwarded, [])
 
-    async def test_connector_must_match_request_context(self) -> None:
+    async def test_unregistered_connector_is_rejected_before_policy_assessment(self) -> None:
         connector = FakeConnector()
         local = FakeLocalProcessor()
-        engine = VeilEngine(FakePolicy(PolicyDecision(confidential=False)), local)
-        context = RequestContext(connector_id="different", session_id="session-6")
+        policy = FakePolicy(PolicyDecision(confidential=False))
+        engine = create_engine(policy, local)
+        context = RequestContext(connector_id="unknown", session_id="session-6")
 
-        with self.assertRaisesRegex(ValueError, "does not match request context"):
-            await engine.process_prompt("ordinary prompt", context, connector)
+        with self.assertRaisesRegex(LookupError, "No connector is registered"):
+            await engine.process_prompt("ordinary prompt", context)
 
+        self.assertEqual(policy.assessed, [])
         self.assertEqual(connector.forwarded, [])
 
     async def test_policy_error_does_not_forward_prompt(self) -> None:
         connector = FakeConnector()
-        engine = VeilEngine(RaisingPolicy(), FakeLocalProcessor())
+        engine = create_engine(RaisingPolicy(), FakeLocalProcessor(), connector)
         context = RequestContext(connector_id="test", session_id="session-8")
 
         with self.assertRaisesRegex(RuntimeError, "policy unavailable"):
-            await engine.process_prompt("unassessed prompt", context, connector)
+            await engine.process_prompt("unassessed prompt", context)
 
         self.assertEqual(connector.forwarded, [])
 
     async def test_local_processor_error_does_not_fall_back_to_connector(self) -> None:
         connector = FakeConnector()
-        engine = VeilEngine(
+        engine = create_engine(
             FakePolicy(PolicyDecision(confidential=True)),
             RaisingLocalProcessor(),
+            connector,
         )
         context = RequestContext(connector_id="test", session_id="session-9")
 
         with self.assertRaisesRegex(RuntimeError, "local processor unavailable"):
-            await engine.process_prompt("sensitive prompt", context, connector)
+            await engine.process_prompt("sensitive prompt", context)
 
         self.assertEqual(connector.forwarded, [])
+
+    async def test_registry_rejects_duplicate_and_invalid_connector_ids(self) -> None:
+        registry = ConnectorRegistry()
+        registry.register(FakeConnector())
+
+        with self.assertRaisesRegex(ValueError, "already registered"):
+            registry.register(FakeConnector())
+
+        class InvalidConnector(FakeConnector):
+            connector_id = " test "
+
+        with self.assertRaisesRegex(ValueError, "non-empty, trimmed"):
+            registry.register(InvalidConnector())
 
 
 if __name__ == "__main__":
